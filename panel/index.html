@@ -43,7 +43,9 @@ a{color:var(--teal)}
 /* ---------- estructura ---------- */
 .wrap{max-width:1240px;margin:0 auto;padding:0 20px 64px}
 header.top{position:sticky;top:0;z-index:40;background:var(--paper);border-bottom:1.5px solid var(--ink);
-  display:flex;align-items:center;gap:16px;padding:12px 20px;flex-wrap:wrap}
+  padding:0 20px}
+.hrow{display:flex;align-items:center;gap:14px;max-width:1240px;margin:0 auto;padding:11px 0 0}
+.hrow.two{padding:0;gap:0;border-top:1px solid var(--rule);margin-top:9px}
 .brand{display:flex;align-items:baseline;gap:9px;margin-right:auto}
 .brand b{font-family:var(--disp);font-size:20px;letter-spacing:-.03em}
 .brand span{font-family:var(--mono);font-size:10.5px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.14em}
@@ -55,12 +57,43 @@ header.top{position:sticky;top:0;z-index:40;background:var(--paper);border-botto
 .tbtn.ghost{border-color:var(--rule);color:var(--ink-2)}
 .tbtn.ghost:hover{border-color:var(--ink);background:transparent;color:var(--ink)}
 
-nav.tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--ink);margin:0 0 26px;overflow-x:auto;scrollbar-width:none}
+nav.tabs{display:flex;gap:0;overflow-x:auto;scrollbar-width:none;position:relative;flex:1;margin-right:auto}
+.wrap{padding-top:26px}
 nav.tabs::-webkit-scrollbar{display:none}
-.tab{background:transparent;border:0;border-bottom:3px solid transparent;padding:13px 16px;cursor:pointer;
-  font-weight:600;font-size:14px;color:var(--ink-2);white-space:nowrap;margin-bottom:-1.5px}
-.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--clay)}
+.tab{background:transparent;border:0;padding:12px 17px 13px;cursor:pointer;position:relative;
+  font-weight:600;font-size:14px;color:var(--ink-3);white-space:nowrap;transition:color .18s}
+.tab .n{font-family:var(--mono);font-size:10px;color:var(--ink-3);margin-right:7px;transition:color .18s}
+.tab[aria-selected="true"]{color:var(--ink)}
+.tab[aria-selected="true"] .n{color:var(--clay)}
 .tab:hover{color:var(--ink)}
+#ink{position:absolute;bottom:-1.5px;height:3px;background:var(--clay);transition:left .34s cubic-bezier(.65,.02,.24,1),width .34s cubic-bezier(.65,.02,.24,1);pointer-events:none}
+
+/* ---------- movimiento ---------- */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes growY{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes popIn{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+@keyframes draw{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes print{from{clip-path:inset(0 0 100% 0)}to{clip-path:inset(0 0 0 0)}}
+.view.on{animation:fadeUp .34s cubic-bezier(.2,.7,.3,1) both}
+.view.on .card,.view.on .kpis{animation:fadeUp .42s cubic-bezier(.2,.7,.3,1) both}
+.view.on .card:nth-of-type(2){animation-delay:.06s}
+.view.on .card:nth-of-type(3){animation-delay:.12s}
+.alert{animation:fadeUp .4s cubic-bezier(.2,.7,.3,1) both}
+.tape{animation:print .7s cubic-bezier(.3,.8,.4,1) both .1s}
+svg.chart .gbar{transform-box:fill-box;transform-origin:bottom;animation:growY .55s cubic-bezier(.3,.9,.35,1) both}
+svg.chart .gbar[style*="left"]{animation-name:growX}
+@keyframes growX{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+svg.chart .gdraw{stroke-dasharray:100;animation:draw .9s cubic-bezier(.4,.6,.3,1) both .25s}
+svg.chart .gpop{transform-box:fill-box;transform-origin:center;animation:popIn .45s cubic-bezier(.3,1.3,.5,1) both}
+svg.chart .gfade{animation:fadeIn .5s ease both}
+.card{transition:border-color .2s,box-shadow .2s}
+.card:hover{border-color:#AFBCAC}
+.kpi{transition:background .18s}
+.kpi:hover{background:#EAEFE8}
+tbody tr{transition:background .12s}
+.chip,.tbtn{transition:background .15s,color .15s,border-color .15s,transform .12s}
+.chip:active,.tbtn:active{transform:translateY(1px)}
 
 .view{display:none}
 .view.on{display:block}
@@ -170,10 +203,13 @@ footer.foot{border-top:1.5px solid var(--ink);margin-top:40px;padding:18px 0;fon
   .kpis{grid-template-columns:1fr}
   .grid2{grid-template-columns:1fr}
   .brand span{display:none}
+  .hrow{gap:9px}
+  .tab{padding:11px 12px;font-size:13px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media print{
   header.top,nav.tabs,.ask,.chips,.tbtn{display:none}
+  .view.on,.view.on .card,.view.on .kpis,.alert,.tape{animation:none}
   body{background:#fff}
   .card,.kpis,.tape{box-shadow:none;break-inside:avoid}
 }
@@ -182,26 +218,31 @@ footer.foot{border-top:1.5px solid var(--ink);margin-top:40px;padding:18px 0;fon
 <body>
 
 <header class="top">
-  <div class="brand"><b>Contador</b><span id="store-name">—</span></div>
-  <select id="period" aria-label="Periodo" style="width:auto;padding:7px 10px;font-size:13px;border-color:var(--ink)">
-    <option value="3">Últimos 3 meses</option>
-    <option value="6">Últimos 6 meses</option>
-    <option value="12" selected>Últimos 12 meses</option>
-    <option value="0">Todo el histórico</option>
-  </select>
-  <button class="tbtn ghost" id="btn-setup">Ajustes</button>
-  <button class="tbtn" id="btn-csv">Cargar mi CSV</button>
-  <button class="tbtn solid" id="btn-demo" hidden>Datos de ejemplo</button>
+  <div class="hrow">
+    <div class="brand"><b>Contador</b><span id="store-name">—</span></div>
+    <select id="period" aria-label="Periodo" style="width:auto;padding:7px 10px;font-size:13px;border-color:var(--ink)">
+      <option value="3">Últimos 3 meses</option>
+      <option value="6">Últimos 6 meses</option>
+      <option value="12" selected>Últimos 12 meses</option>
+      <option value="0">Todo el histórico</option>
+    </select>
+    <button class="tbtn ghost" id="btn-setup">Ajustes</button>
+    <button class="tbtn" id="btn-csv">Cargar mi CSV</button>
+    <button class="tbtn solid" id="btn-demo" hidden>Datos de ejemplo</button>
+  </div>
+  <div class="hrow two">
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-resumen"   aria-selected="true"  data-view="resumen"><span class="n">01</span>Resumen</button>
+      <button class="tab" role="tab" id="tab-productos" aria-selected="false" data-view="productos"><span class="n">02</span>Productos</button>
+      <button class="tab" role="tab" id="tab-clientes"  aria-selected="false" data-view="clientes"><span class="n">03</span>Clientes</button>
+      <button class="tab" role="tab" id="tab-temporada" aria-selected="false" data-view="temporada"><span class="n">04</span>Temporada</button>
+      <button class="tab" role="tab" id="tab-preguntas" aria-selected="false" data-view="preguntas"><span class="n">05</span>Preguntas</button>
+      <span id="ink"></span>
+    </nav>
+  </div>
 </header>
 
 <div class="wrap">
-  <nav class="tabs" role="tablist">
-    <button class="tab" role="tab" id="tab-resumen"  aria-selected="true"  data-view="resumen">Resumen</button>
-    <button class="tab" role="tab" id="tab-productos" aria-selected="false" data-view="productos">Productos</button>
-    <button class="tab" role="tab" id="tab-clientes"  aria-selected="false" data-view="clientes">Clientes</button>
-    <button class="tab" role="tab" id="tab-temporada" aria-selected="false" data-view="temporada">Temporada</button>
-    <button class="tab" role="tab" id="tab-preguntas" aria-selected="false" data-view="preguntas">Preguntas</button>
-  </nav>
 
   <!-- RESUMEN -->
   <section class="view on" id="v-resumen" role="tabpanel" aria-labelledby="tab-resumen">
@@ -724,14 +765,14 @@ function chartRevenue(rows){
   }
   rows.forEach((r, i) => {
     const x = P.l + i * bw + (bw - bar) / 2;
-    s += '<rect x="' + x + '" y="' + y(r.revenue) + '" width="' + bar + '" height="' + Math.max(0, P.t+ih-y(r.revenue)) + '" fill="#0E6E5C33" stroke="#0E6E5C" stroke-width="1.5"><title>' + r.label + ': ' + money(r.revenue) + '</title></rect>';
+    s += '<rect class="gbar" style="animation-delay:' + (i*0.045).toFixed(2) + 's" x="' + x + '" y="' + y(r.revenue) + '" width="' + bar + '" height="' + Math.max(0, P.t+ih-y(r.revenue)) + '" fill="#0E6E5C33" stroke="#0E6E5C" stroke-width="1.5"><title>' + r.label + ': ' + money(r.revenue) + '</title></rect>';
     if(rows.length <= 14 || i % 2 === 0)
       s += '<text class="axl" x="' + (P.l + i*bw + bw/2) + '" y="' + (H-P.b+15) + '" text-anchor="middle">' + r.label + '</text>';
   });
   const pts = rows.map((r, i) => (P.l + i*bw + bw/2) + ',' + y(r.margin));
-  s += '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#5B3A83" stroke-width="2.5" stroke-linejoin="round"/>';
+  s += '<polyline class="gdraw" pathLength="100" points="' + pts.join(' ') + '" fill="none" stroke="#5B3A83" stroke-width="2.5" stroke-linejoin="round"/>';
   rows.forEach((r, i) => {
-    s += '<circle cx="' + (P.l + i*bw + bw/2) + '" cy="' + y(r.margin) + '" r="3.5" fill="#5B3A83"><title>Margen ' + r.label + ': ' + money(r.margin) + ' (' + pct(r.mrate) + ')</title></circle>';
+    s += '<circle class="gpop" style="animation-delay:' + (0.5 + i*0.035).toFixed(2) + 's" cx="' + (P.l + i*bw + bw/2) + '" cy="' + y(r.margin) + '" r="3.5" fill="#5B3A83"><title>Margen ' + r.label + ': ' + money(r.margin) + ' (' + pct(r.mrate) + ')</title></circle>';
   });
   return svg(W, H, s);
 }
@@ -759,10 +800,11 @@ function chartScatter(prods){
     s += '<text class="axl" x="' + (P.l+6) + '" y="' + (y(tgt)-6) + '" fill="#C2410C">objetivo ' + Math.round(tgt*100) + '%</text>';
   }
   const maxU = Math.max(...prods.map(p => p.units));
+  let pi = 0;
   for(const p of prods){
     const r = 5 + 11 * Math.sqrt(p.units / maxU);
     const below = tgt > 0 && p.mrate < tgt;
-    s += '<circle cx="' + x(p.revenue) + '" cy="' + y(p.mrate) + '" r="' + r.toFixed(1) + '" fill="' + (below ? '#C2410C22' : '#0E6E5C22') + '" stroke="' + (below ? '#C2410C' : '#0E6E5C') + '" stroke-width="1.5"><title>' + esc(p.key) + '\nIngresos ' + money(p.revenue) + '\nMargen ' + pct(p.mrate) + '\n' + p.units + ' uds</title></circle>';
+    s += '<circle class="gpop" style="animation-delay:' + (pi++ * 0.035).toFixed(2) + 's" cx="' + x(p.revenue) + '" cy="' + y(p.mrate) + '" r="' + r.toFixed(1) + '" fill="' + (below ? '#C2410C22' : '#0E6E5C22') + '" stroke="' + (below ? '#C2410C' : '#0E6E5C') + '" stroke-width="1.5"><title>' + esc(p.key) + '\nIngresos ' + money(p.revenue) + '\nMargen ' + pct(p.mrate) + '\n' + p.units + ' uds</title></circle>';
   }
   const top = [...prods].sort((a,b) => b.revenue-a.revenue).slice(0, 5);
   for(const p of top){
@@ -786,7 +828,7 @@ function chartPareto(p){
   s += '<line x1="' + P.l + '" y1="' + y(0) + '" x2="' + (W-P.r) + '" y2="' + y(1) + '" stroke="var(--rule)" stroke-width="1.5" stroke-dasharray="4 4"/>';
   const step = Math.max(1, Math.floor(p.pts.length / 260));
   const pts = p.pts.filter((_, i) => i % step === 0 || i === p.pts.length-1).map(q => x(q.x).toFixed(1) + ',' + y(q.y).toFixed(1));
-  s += '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#5B3A83" stroke-width="2.5"/>';
+  s += '<polyline class="gdraw" pathLength="100" points="' + pts.join(' ') + '" fill="none" stroke="#5B3A83" stroke-width="2.5"/>';
   s += '<line x1="' + x(.2) + '" y1="' + P.t + '" x2="' + x(.2) + '" y2="' + y(0) + '" stroke="#C2410C" stroke-width="1.5" stroke-dasharray="5 4"/>';
   s += '<circle cx="' + x(.2) + '" cy="' + y(p.top20) + '" r="5" fill="#C2410C"/>';
   s += '<text class="axl" x="' + (x(.2)+9) + '" y="' + (y(p.top20)-9) + '" fill="#C2410C">20% de clientes → ' + pct(p.top20, 0) + ' de ingresos</text>';
@@ -801,9 +843,9 @@ function chartCats(cats){
   cats.forEach((c, i) => {
     const yy = i * rowH + 10;
     s += '<text class="axl" x="0" y="' + (yy+11) + '" fill="#14231C" style="font-size:11.5px">' + esc(c.key) + '</text>';
-    s += '<rect x="150" y="' + yy + '" width="' + (c.revenue/maxR*280).toFixed(1) + '" height="13" fill="#0E6E5C33" stroke="#0E6E5C" stroke-width="1.2"/>';
+    s += '<rect class="gbar" style="transform-origin:left;animation-delay:' + (i*0.06).toFixed(2) + 's" x="150" y="' + yy + '" width="' + (c.revenue/maxR*280).toFixed(1) + '" height="13" fill="#0E6E5C33" stroke="#0E6E5C" stroke-width="1.2"/>';
     s += '<text class="axl" x="' + (150 + c.revenue/maxR*280 + 7) + '" y="' + (yy+11) + '">' + money(c.revenue) + '</text>';
-    s += '<rect x="150" y="' + (yy+16) + '" width="' + (c.margin/maxM*280).toFixed(1) + '" height="13" fill="#5B3A8333" stroke="#5B3A83" stroke-width="1.2"/>';
+    s += '<rect class="gbar" style="transform-origin:left;animation-delay:' + (i*0.06+0.09).toFixed(2) + 's" x="150" y="' + (yy+16) + '" width="' + (c.margin/maxM*280).toFixed(1) + '" height="13" fill="#5B3A8333" stroke="#5B3A83" stroke-width="1.2"/>';
     s += '<text class="axl" x="' + (150 + c.margin/maxM*280 + 7) + '" y="' + (yy+27) + '">' + money(c.margin) + ' · ' + pct(c.mrate, 0) + '</text>';
   });
   return svg(W, H, s) + '<div class="legend"><span><i style="background:#0E6E5C33;border:1.5px solid #0E6E5C"></i>Ingresos</span><span><i style="background:#5B3A8333;border:1.5px solid #5B3A83"></i>Margen</span></div>';
@@ -829,7 +871,7 @@ function chartDow(lines){
   const bw = iw/7, best = avg.indexOf(Math.max(...avg));
   avg.forEach((v, i) => {
     const x = P.l + i*bw + bw*0.18, w = bw*0.64;
-    s += '<rect x="' + x + '" y="' + y(v) + '" width="' + w + '" height="' + Math.max(0, P.t+ih-y(v)) + '" fill="' + (i===best ? '#0E6E5C' : '#0E6E5C33') + '" stroke="#0E6E5C" stroke-width="1.5"><title>' + DOW[i] + ': ' + money(v) + ' de media</title></rect>';
+    s += '<rect class="gbar" style="animation-delay:' + (i*0.05).toFixed(2) + 's" x="' + x + '" y="' + y(v) + '" width="' + w + '" height="' + Math.max(0, P.t+ih-y(v)) + '" fill="' + (i===best ? '#0E6E5C' : '#0E6E5C33') + '" stroke="#0E6E5C" stroke-width="1.5"><title>' + DOW[i] + ': ' + money(v) + ' de media</title></rect>';
     s += '<text class="axl" x="' + (P.l+i*bw+bw/2) + '" y="' + (H-P.b+16) + '" text-anchor="middle">' + DOW[i] + '</text>';
   });
   return svg(W, H, s);
@@ -850,7 +892,7 @@ function chartHeat(lines){
     const r = Math.floor(i/cols), c = i%cols;
     const alpha = (a.v/maxV);
     const d = new Date(a.t);
-    s += '<rect x="' + (c*cw) + '" y="' + (r*ch+16) + '" width="' + (cw-2.5) + '" height="' + (ch-5) + '" fill="rgba(14,110,92,' + (0.06 + alpha*0.88).toFixed(3) + ')" stroke="#C9D2C6" stroke-width=".8"><title>Semana del ' + d.getDate() + ' ' + MES[d.getMonth()] + ': ' + money(a.v) + '</title></rect>';
+    s += '<rect class="gfade" style="animation-delay:' + (i*0.008).toFixed(3) + 's" x="' + (c*cw) + '" y="' + (r*ch+16) + '" width="' + (cw-2.5) + '" height="' + (ch-5) + '" fill="rgba(14,110,92,' + (0.06 + alpha*0.88).toFixed(3) + ')" stroke="#C9D2C6" stroke-width=".8"><title>Semana del ' + d.getDate() + ' ' + MES[d.getMonth()] + ': ' + money(a.v) + '</title></rect>';
     if(d.getDate() <= 7) s += '<text class="axl" x="' + (c*cw) + '" y="' + (r*ch+10) + '">' + MES[d.getMonth()] + '</text>';
   });
   s += '<text class="axl" x="0" y="' + (H-8) + '">menos</text>';
@@ -1118,9 +1160,28 @@ const SUGGEST = [
 /* ============================================================
    RENDER
    ============================================================ */
-function kpi(k, v, d, cls){
-  return '<div class="kpi"><div class="k">' + k + '</div><div class="v">' + v + '</div>' +
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function kpi(k, v, d, cls, raw, fmt){
+  const anim = (raw !== undefined && !REDUCED) ? ' data-to="' + raw + '" data-fmt="' + fmt + '"' : '';
+  return '<div class="kpi"><div class="k">' + k + '</div><div class="v"' + anim + '>' + v + '</div>' +
          (d ? '<div class="d ' + (cls||'flat') + '">' + d + '</div>' : '') + '</div>';
+}
+const FMT = { money:v => money(v), money2:v => money(v, 2), pct:v => pct(v), pct0:v => pct(v, 0),
+              int:v => Math.round(v).toLocaleString('es-ES'), dec2:v => v.toFixed(2).replace('.', ',') };
+function countUp(scope){
+  if(REDUCED) return;
+  scope.querySelectorAll('.v[data-to]').forEach(el => {
+    const to = +el.dataset.to, f = FMT[el.dataset.fmt] || FMT.int;
+    if(!isFinite(to)){ return; }
+    const t0 = performance.now(), D = 620;
+    const step = now => {
+      const p = Math.min(1, (now - t0) / D);
+      const e = 1 - Math.pow(1 - p, 3);
+      el.textContent = f(to * e);
+      if(p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  });
 }
 function render(){
   applyPeriod();
@@ -1147,16 +1208,16 @@ function render(){
   const [dm, cm] = delta(T.margin, prev && prev.margin);
   const [da, ca] = delta(T.aov, prev && prev.aov);
   $('#kpis').innerHTML =
-    kpi('Ingresos', money(T.revenue), dr, cr) +
-    kpi('Margen bruto', money(T.margin), dm, cm) +
-    kpi('Margen sobre ventas', pct(T.mrate), (+profile.target ? 'objetivo ' + profile.target + ' %' : ''), T.mrate >= (+profile.target||0)/100 ? 'up' : 'down') +
-    kpi('Pedidos', T.orders.toLocaleString('es-ES'), T.customers.toLocaleString('es-ES') + ' clientes') +
-    kpi('Ticket medio', money(T.aov, 2), da, ca);
+    kpi('Ingresos', money(T.revenue), dr, cr, T.revenue, 'money') +
+    kpi('Margen bruto', money(T.margin), dm, cm, T.margin, 'money') +
+    kpi('Margen sobre ventas', pct(T.mrate), (+profile.target ? 'objetivo ' + profile.target + ' %' : ''), T.mrate >= (+profile.target||0)/100 ? 'up' : 'down', T.mrate, 'pct') +
+    kpi('Pedidos', T.orders.toLocaleString('es-ES'), T.customers.toLocaleString('es-ES') + ' clientes', '', T.orders, 'int') +
+    kpi('Ticket medio', money(T.aov, 2), da, ca, T.aov, 'money2');
 
   $('#ch-revenue').innerHTML = chartRevenue(months);
   const alerts = buildAlerts();
   $('#alerts').innerHTML = alerts.length
-    ? alerts.map(a => '<div class="alert ' + a.type + '"><div class="t">' + a.t + '</div><div class="b">' + a.b + '</div></div>').join('')
+    ? alerts.map((a, i) => '<div class="alert ' + a.type + '" style="animation-delay:' + (i*0.07).toFixed(2) + 's"><div class="t">' + a.t + '</div><div class="b">' + a.b + '</div></div>').join('')
     : '<p class="hint">No hay suficientes datos en este periodo para sacar conclusiones.</p>';
   renderTape();
 
@@ -1179,11 +1240,11 @@ function render(){
   const custs = customerStats(L), P = pareto(custs);
   const repeat = custs.filter(c => c.orders > 1).length;
   $('#kpis-cust').innerHTML =
-    kpi('Clientes', custs.length.toLocaleString('es-ES')) +
-    kpi('Repiten', pct(custs.length ? repeat/custs.length : 0, 0), repeat.toLocaleString('es-ES') + ' clientes') +
-    kpi('Pedidos por cliente', (custs.length ? T.orders/custs.length : 0).toFixed(2).replace('.', ',')) +
-    kpi('Gasto medio por cliente', money(custs.length ? T.revenue/custs.length : 0, 2)) +
-    kpi('Top 20 % de clientes', pct(P.top20, 0), 'de tus ingresos');
+    kpi('Clientes', custs.length.toLocaleString('es-ES'), '', '', custs.length, 'int') +
+    kpi('Repiten', pct(custs.length ? repeat/custs.length : 0, 0), repeat.toLocaleString('es-ES') + ' clientes', '', custs.length ? repeat/custs.length : 0, 'pct0') +
+    kpi('Pedidos por cliente', (custs.length ? T.orders/custs.length : 0).toFixed(2).replace('.', ','), '', '', custs.length ? T.orders/custs.length : 0, 'dec2') +
+    kpi('Gasto medio por cliente', money(custs.length ? T.revenue/custs.length : 0, 2), '', '', custs.length ? T.revenue/custs.length : 0, 'money2') +
+    kpi('Top 20 % de clientes', pct(P.top20, 0), 'de tus ingresos', '', P.top20, 'pct0');
   $('#ch-pareto').innerHTML = chartPareto(P);
   table($('#t-customers'), [
     { k:'id',      h:'Cliente' },
@@ -1212,6 +1273,7 @@ function render(){
     { k:'mrate',    h:'% margen', n:true, f:v => pct(v) }
   ], chans, 'revenue');
 
+  countUp($('#kpis')); countUp($('#kpis-cust'));
   $('#foot-meta').textContent = DATA.orders.length.toLocaleString('es-ES') + ' líneas de pedido · ' +
     (DATA.demo ? 'datos de ejemplo' : 'tu CSV') + (DATA.hasCost ? '' : ' · sin columna de coste: el margen no incluye coste de producto');
   $('#btn-demo').hidden = DATA.demo;
@@ -1220,12 +1282,37 @@ function render(){
 /* ============================================================
    CABLEADO
    ============================================================ */
-$$('.tab').forEach(t => t.addEventListener('click', () => {
+function moveInk(){
+  const t = $('.tab[aria-selected="true"]');
+  if(!t) return;
+  const ink = $('#ink');
+  ink.style.left = t.offsetLeft + 'px';
+  ink.style.width = t.offsetWidth + 'px';
+}
+function showTab(t){
   $$('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
   $$('.view').forEach(v => { v.classList.remove('on'); v.hidden = true; });
   const v = $('#v-' + t.dataset.view);
-  v.classList.add('on'); v.hidden = false;
-}));
+  v.hidden = false;
+  void v.offsetWidth;          /* reinicia las animaciones de entrada */
+  v.classList.add('on');
+  moveInk();
+  if(t.dataset.view === 'clientes') countUp($('#kpis-cust'));
+  if(t.dataset.view === 'resumen') countUp($('#kpis'));
+}
+$$('.tab').forEach((t, i) => {
+  t.addEventListener('click', () => showTab(t));
+  t.addEventListener('keydown', e => {
+    const tabs = $$('.tab');
+    if(e.key === 'ArrowRight' || e.key === 'ArrowLeft'){
+      e.preventDefault();
+      const n = tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length];
+      n.focus(); showTab(n);
+    }
+  });
+});
+window.addEventListener('resize', moveInk);
+document.fonts && document.fonts.ready.then(moveInk);
 $('#period').addEventListener('change', render);
 
 /* ajustes */
@@ -1299,6 +1386,7 @@ $('#q').addEventListener('keydown', e => { if(e.key === 'Enter'){ const v = $('#
 /* arranque */
 DATA = { orders: demoOrders(), hasCost:true, demo:true };
 render();
+moveInk();
 if(!profile.seen) setTimeout(openSetup, 500);
 </script>
 </body>
