@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Panel de análisis para tiendas online: carga tu CSV de pedidos y descubre qué te da margen de verdad, quién compra y cuándo. Todo el cálculo ocurre en tu navegador.">
+<meta name="theme-color" content="#EDF0EA">
+<title>Contador — análisis de negocio para tiendas online</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EDF0EA;        /* papel frío */
+  --card:#F7F9F5;
+  --ink:#14231C;          /* tinta verde-negra */
+  --ink-2:#4A5C52;
+  --ink-3:#8296899e;
+  --rule:#C9D2C6;
+  --teal:#0E6E5C;         /* positivo */
+  --clay:#C2410C;         /* aviso */
+  --plum:#5B3A83;         /* acento datos */
+  --gold:#A47A08;
+  --sh:0 1px 0 rgba(20,35,28,.06), 0 8px 24px -18px rgba(20,35,28,.5);
+  --disp:'Bricolage Grotesque',system-ui,sans-serif;
+  --body:'Public Sans',system-ui,sans-serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  background-image:linear-gradient(var(--rule) 1px,transparent 1px);
+  background-size:100% 28px;background-position:0 -1px;
+}
+h1,h2,h3{font-family:var(--disp);font-weight:800;letter-spacing:-.02em;margin:0;line-height:1.05}
+button{font:inherit;color:inherit}
+a{color:var(--teal)}
+:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+/* ---------- estructura ---------- */
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px 64px}
+header.top{position:sticky;top:0;z-index:40;background:var(--paper);border-bottom:1.5px solid var(--ink);
+  display:flex;align-items:center;gap:16px;padding:12px 20px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:9px;margin-right:auto}
+.brand b{font-family:var(--disp);font-size:20px;letter-spacing:-.03em}
+.brand span{font-family:var(--mono);font-size:10.5px;color:var(--ink-2);text-transform:uppercase;letter-spacing:.14em}
+.tbtn{background:transparent;border:1.5px solid var(--ink);border-radius:0;padding:7px 13px;font-size:13px;font-weight:600;cursor:pointer;
+  transition:background .12s,color .12s}
+.tbtn:hover{background:var(--ink);color:var(--paper)}
+.tbtn.solid{background:var(--ink);color:var(--paper)}
+.tbtn.solid:hover{background:var(--teal);border-color:var(--teal)}
+.tbtn.ghost{border-color:var(--rule);color:var(--ink-2)}
+.tbtn.ghost:hover{border-color:var(--ink);background:transparent;color:var(--ink)}
+
+nav.tabs{display:flex;gap:2px;border-bottom:1.5px solid var(--ink);margin:0 0 26px;overflow-x:auto;scrollbar-width:none}
+nav.tabs::-webkit-scrollbar{display:none}
+.tab{background:transparent;border:0;border-bottom:3px solid transparent;padding:13px 16px;cursor:pointer;
+  font-weight:600;font-size:14px;color:var(--ink-2);white-space:nowrap;margin-bottom:-1.5px}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--clay)}
+.tab:hover{color:var(--ink)}
+
+.view{display:none}
+.view.on{display:block}
+.cols{display:grid;grid-template-columns:1fr 300px;gap:26px;align-items:start}
+
+/* ---------- tarjetas ---------- */
+.card{background:var(--card);border:1.5px solid var(--rule);box-shadow:var(--sh);padding:18px 20px;margin-bottom:18px}
+.card > h3{font-size:15px;font-weight:700;letter-spacing:-.01em;margin-bottom:3px}
+.card .sub{font-size:12.5px;color:var(--ink-2);margin-bottom:16px}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-2)}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:0;border:1.5px solid var(--rule);background:var(--card);box-shadow:var(--sh);margin-bottom:18px}
+.kpi{padding:16px 18px;border-right:1.5px solid var(--rule)}
+.kpi:last-child{border-right:0}
+.kpi .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-2)}
+.kpi .v{font-family:var(--disp);font-size:29px;font-weight:800;letter-spacing:-.035em;margin-top:5px;font-variant-numeric:tabular-nums}
+.kpi .d{font-family:var(--mono);font-size:11.5px;margin-top:2px}
+.up{color:var(--teal)} .down{color:var(--clay)} .flat{color:var(--ink-2)}
+
+/* ---------- la tira de caja (elemento firma) ---------- */
+.tape{background:#FCFCF8;border:1.5px solid var(--rule);box-shadow:var(--sh);font-family:var(--mono);font-size:12px;
+  position:sticky;top:74px;
+  --tear:6px;
+  padding:18px 16px 26px;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 8px),97% 100%,94% calc(100% - 8px),91% 100%,88% calc(100% - 8px),85% 100%,82% calc(100% - 8px),79% 100%,76% calc(100% - 8px),73% 100%,70% calc(100% - 8px),67% 100%,64% calc(100% - 8px),61% 100%,58% calc(100% - 8px),55% 100%,52% calc(100% - 8px),49% 100%,46% calc(100% - 8px),43% 100%,40% calc(100% - 8px),37% 100%,34% calc(100% - 8px),31% 100%,28% calc(100% - 8px),25% 100%,22% calc(100% - 8px),19% 100%,16% calc(100% - 8px),13% 100%,10% calc(100% - 8px),7% 100%,4% calc(100% - 8px),1% 100%,0 calc(100% - 8px))}
+.tape h4{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;margin:0 0 2px;font-weight:600}
+.tape .meta{color:var(--ink-2);font-size:10.5px;letter-spacing:.06em}
+.tape hr{border:0;border-top:1px dashed var(--rule);margin:12px 0}
+.tline{display:flex;justify-content:space-between;gap:10px;padding:3px 0;align-items:baseline}
+.tline span:last-child{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tape .total{font-weight:600;border-top:1.5px solid var(--ink);margin-top:8px;padding-top:8px;font-size:13px}
+.stamp{margin-top:14px;border:1.5px solid var(--clay);color:var(--clay);transform:rotate(-2.5deg);
+  padding:5px 8px;font-size:10px;letter-spacing:.16em;text-align:center;font-weight:600;text-transform:uppercase}
+
+/* ---------- avisos ---------- */
+.alert{border:1.5px solid var(--rule);border-left:5px solid var(--clay);background:var(--card);padding:13px 16px;margin-bottom:10px}
+.alert.good{border-left-color:var(--teal)}
+.alert.info{border-left-color:var(--plum)}
+.alert .t{font-weight:700;font-size:14px;margin-bottom:2px}
+.alert .b{font-size:13.5px;color:var(--ink-2)}
+.alert .b b{color:var(--ink);font-family:var(--mono);font-size:13px}
+
+/* ---------- tablas ---------- */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-2);
+  border-bottom:1.5px solid var(--ink);padding:0 10px 7px 0;font-weight:500;white-space:nowrap;cursor:pointer;user-select:none}
+th.n,td.n{text-align:right}
+th[aria-sort="descending"]::after{content:" ↓"} th[aria-sort="ascending"]::after{content:" ↑"}
+td{border-bottom:1px solid var(--rule);padding:9px 10px 9px 0;vertical-align:baseline}
+tbody tr:hover{background:#EEF2EC}
+td.n{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.bar-cell{position:relative}
+.bar-cell i{position:absolute;left:0;top:50%;transform:translateY(-50%);height:16px;background:#0E6E5C1f;display:block}
+.bar-cell em{position:relative;font-style:normal}
+
+/* ---------- gráficas ---------- */
+figure{margin:0}
+svg.chart{width:100%;height:auto;display:block;overflow:visible}
+.gl{stroke:var(--rule);stroke-width:1}
+.axl{font-family:var(--mono);font-size:9.5px;fill:var(--ink-2)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--mono);font-size:11px;color:var(--ink-2);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+
+/* ---------- preguntas ---------- */
+.ask{display:flex;gap:0;border:1.5px solid var(--ink);background:var(--card)}
+.ask input{flex:1;border:0;background:transparent;padding:14px 16px;font:inherit;font-size:15px;color:var(--ink);min-width:0}
+.ask input:focus{outline:0}
+.ask button{border:0;border-left:1.5px solid var(--ink);background:var(--ink);color:var(--paper);padding:0 20px;font-weight:600;cursor:pointer}
+.ask button:hover{background:var(--teal)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{background:transparent;border:1.5px solid var(--rule);padding:6px 11px;font-size:12.5px;cursor:pointer;color:var(--ink-2)}
+.chip:hover{border-color:var(--ink);color:var(--ink)}
+.answer{border-left:5px solid var(--plum);background:var(--card);border:1.5px solid var(--rule);border-left-width:5px;padding:18px 20px;margin-top:16px}
+.answer .big{font-family:var(--disp);font-size:31px;font-weight:800;letter-spacing:-.03em;margin:4px 0 6px;font-variant-numeric:tabular-nums}
+.qlog{margin-top:20px}
+.qlog .qi{border-top:1px dashed var(--rule);padding:11px 0;font-size:13.5px;color:var(--ink-2)}
+.qlog .qi b{color:var(--ink)}
+
+/* ---------- formularios / diálogos ---------- */
+dialog{border:1.5px solid var(--ink);background:var(--card);padding:0;max-width:520px;width:calc(100% - 32px);box-shadow:0 20px 60px -20px rgba(20,35,28,.6)}
+dialog::backdrop{background:rgba(20,35,28,.45)}
+.dlg-h{padding:20px 22px 0}
+.dlg-b{padding:16px 22px 22px}
+.dlg-f{display:flex;gap:8px;justify-content:flex-end;padding:14px 22px;border-top:1.5px solid var(--rule);background:#EFF2EC;flex-wrap:wrap}
+label{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);margin:14px 0 5px}
+input[type=text],input[type=number],select{width:100%;border:1.5px solid var(--rule);background:#fff;padding:10px 12px;font:inherit;font-size:14.5px;color:var(--ink);border-radius:0}
+input:focus,select:focus{border-color:var(--ink);outline:0}
+.hint{font-size:12px;color:var(--ink-2);margin-top:5px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+
+.drop{border:2px dashed var(--rule);padding:26px;text-align:center;color:var(--ink-2);font-size:13.5px;background:#F3F6F1}
+.drop.over{border-color:var(--teal);background:#E9F2ED;color:var(--ink)}
+
+.empty{text-align:center;padding:56px 20px;color:var(--ink-2)}
+.empty h2{font-size:24px;color:var(--ink);margin-bottom:8px}
+
+footer.foot{border-top:1.5px solid var(--ink);margin-top:40px;padding:18px 0;font-family:var(--mono);font-size:11px;color:var(--ink-2);
+  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+
+@media (max-width:900px){
+  .cols{grid-template-columns:1fr}
+  .tape{position:static}
+  .kpi{border-right:0;border-bottom:1.5px solid var(--rule)}
+  .kpis{grid-template-columns:1fr 1fr}
+}
+@media (max-width:520px){
+  .kpis{grid-template-columns:1fr}
+  .grid2{grid-template-columns:1fr}
+  .brand span{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{
+  header.top,nav.tabs,.ask,.chips,.tbtn{display:none}
+  body{background:#fff}
+  .card,.kpis,.tape{box-shadow:none;break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><b>Contador</b><span id="store-name">—</span></div>
+  <select id="period" aria-label="Periodo" style="width:auto;padding:7px 10px;font-size:13px;border-color:var(--ink)">
+    <option value="3">Últimos 3 meses</option>
+    <option value="6">Últimos 6 meses</option>
+    <option value="12" selected>Últimos 12 meses</option>
+    <option value="0">Todo el histórico</option>
+  </select>
+  <button class="tbtn ghost" id="btn-setup">Ajustes</button>
+  <button class="tbtn" id="btn-csv">Cargar mi CSV</button>
+  <button class="tbtn solid" id="btn-demo" hidden>Datos de ejemplo</button>
+</header>
+
+<div class="wrap">
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-resumen"  aria-selected="true"  data-view="resumen">Resumen</button>
+    <button class="tab" role="tab" id="tab-productos" aria-selected="false" data-view="productos">Productos</button>
+    <button class="tab" role="tab" id="tab-clientes"  aria-selected="false" data-view="clientes">Clientes</button>
+    <button class="tab" role="tab" id="tab-temporada" aria-selected="false" data-view="temporada">Temporada</button>
+    <button class="tab" role="tab" id="tab-preguntas" aria-selected="false" data-view="preguntas">Preguntas</button>
+  </nav>
+
+  <!-- RESUMEN -->
+  <section class="view on" id="v-resumen" role="tabpanel" aria-labelledby="tab-resumen">
+    <div class="kpis" id="kpis"></div>
+    <div class="cols">
+      <div>
+        <div class="card">
+          <h3>Ingresos y margen por mes</h3>
+          <p class="sub">Barras: ingresos. Línea: margen que te queda después de coste de producto, envío y descuentos.</p>
+          <figure id="ch-revenue"></figure>
+          <div class="legend">
+            <span><i style="background:#0E6E5C33;border:1.5px solid #0E6E5C"></i>Ingresos</span>
+            <span><i style="background:#5B3A83"></i>Margen</span>
+            <span><i style="background:#C2410C"></i>Umbral de rentabilidad</span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Qué hemos encontrado</h3>
+          <p class="sub">Se recalcula con cada cambio de periodo o de datos.</p>
+          <div id="alerts"></div>
+        </div>
+      </div>
+      <aside class="tape" id="tape"></aside>
+    </div>
+  </section>
+
+  <!-- PRODUCTOS -->
+  <section class="view" id="v-productos" role="tabpanel" aria-labelledby="tab-productos" hidden>
+    <div class="card">
+      <h3>Ingresos frente a margen</h3>
+      <p class="sub">Cada punto es un producto. Abajo a la derecha viven los que venden mucho y dejan poco.</p>
+      <figure id="ch-scatter"></figure>
+    </div>
+    <div class="card">
+      <h3>Todos los productos</h3>
+      <p class="sub">Pulsa una columna para ordenar por ella.</p>
+      <div style="overflow-x:auto"><table id="t-products"></table></div>
+    </div>
+    <div class="card">
+      <h3>Peso de cada categoría</h3>
+      <p class="sub">Cuánto aporta cada categoría a los ingresos y cuánto al margen. No siempre coinciden.</p>
+      <figure id="ch-cats"></figure>
+    </div>
+  </section>
+
+  <!-- CLIENTES -->
+  <section class="view" id="v-clientes" role="tabpanel" aria-labelledby="tab-clientes" hidden>
+    <div class="kpis" id="kpis-cust"></div>
+    <div class="card">
+      <h3>Concentración de ingresos</h3>
+      <p class="sub">Ordenados de mayor a menor gasto: qué porcentaje de clientes acumula qué porcentaje de tus ingresos.</p>
+      <figure id="ch-pareto"></figure>
+    </div>
+    <div class="cols">
+      <div class="card" style="margin:0">
+        <h3>Mejores clientes</h3>
+        <p class="sub">Por gasto acumulado en el periodo.</p>
+        <div style="overflow-x:auto"><table id="t-customers"></table></div>
+      </div>
+      <div class="card" style="margin:0">
+        <h3>Se están enfriando</h3>
+        <p class="sub">Compraban de forma habitual y llevan tiempo sin volver.</p>
+        <div id="churn"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TEMPORADA -->
+  <section class="view" id="v-temporada" role="tabpanel" aria-labelledby="tab-temporada" hidden>
+    <div class="card">
+      <h3>Ventas por día de la semana</h3>
+      <p class="sub">Media de ingresos por día en el periodo seleccionado.</p>
+      <figure id="ch-dow"></figure>
+    </div>
+    <div class="card">
+      <h3>Mapa del año</h3>
+      <p class="sub">Intensidad de ventas por semana. Cuanto más oscuro, más facturación.</p>
+      <figure id="ch-heat"></figure>
+    </div>
+    <div class="card">
+      <h3>Canales de venta</h3>
+      <p class="sub">De dónde llegan los pedidos y qué ticket medio deja cada canal.</p>
+      <div style="overflow-x:auto"><table id="t-channels"></table></div>
+    </div>
+  </section>
+
+  <!-- PREGUNTAS -->
+  <section class="view" id="v-preguntas" role="tabpanel" aria-labelledby="tab-preguntas" hidden>
+    <div class="card">
+      <h3>Pregunta por tus datos</h3>
+      <p class="sub">Escribe en lenguaje normal. Se interpreta la pregunta y se calcula sobre tus pedidos: sin inventar nada.</p>
+      <div class="ask">
+        <input id="q" placeholder="¿Qué producto me dio más margen en marzo?" autocomplete="off">
+        <button id="q-go">Responder</button>
+      </div>
+      <div class="chips" id="q-chips"></div>
+      <div id="q-answer"></div>
+      <div class="qlog" id="q-log"></div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Contador · los cálculos ocurren en tu navegador. Ningún dato sale de este dispositivo.</span>
+    <span id="foot-meta"></span>
+  </footer>
+</div>
+
+<!-- Ajustes -->
+<dialog id="dlg-setup">
+  <form method="dialog">
+    <div class="dlg-h">
+      <p class="eyebrow">Configuración</p>
+      <h2 style="font-size:22px;margin-top:4px">Cuéntanos de tu tienda</h2>
+      <p class="hint" style="margin-top:8px">Con esto se ajustan los umbrales de los avisos. Se guarda solo en este navegador.</p>
+    </div>
+    <div class="dlg-b">
+      <label for="f-name">Nombre de la tienda</label>
+      <input type="text" id="f-name" maxlength="40" placeholder="Mi tienda">
+      <div class="grid2">
+        <div>
+          <label for="f-sector">Sector</label>
+          <select id="f-sector">
+            <option>Suplementos y salud</option><option>Moda y accesorios</option>
+            <option>Hogar y decoración</option><option>Electrónica</option>
+            <option>Cosmética</option><option>Alimentación</option><option>Otro</option>
+          </select>
+        </div>
+        <div>
+          <label for="f-currency">Moneda</label>
+          <select id="f-currency"><option value="EUR">Euro (€)</option><option value="USD">Dólar ($)</option><option value="GBP">Libra (£)</option></select>
+        </div>
+      </div>
+      <div class="grid2">
+        <div>
+          <label for="f-fixed">Costes fijos al mes</label>
+          <input type="number" id="f-fixed" min="0" step="50" placeholder="1800">
+          <p class="hint">Alquiler, software, sueldos.</p>
+        </div>
+        <div>
+          <label for="f-target">Margen objetivo</label>
+          <input type="number" id="f-target" min="0" max="95" step="1" placeholder="35">
+          <p class="hint">En porcentaje sobre ingresos.</p>
+        </div>
+      </div>
+    </div>
+    <div class="dlg-f">
+      <button class="tbtn ghost" value="cancel">Cancelar</button>
+      <button class="tbtn solid" value="save" id="f-save">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Cargar CSV -->
+<dialog id="dlg-csv">
+  <div class="dlg-h">
+    <p class="eyebrow">Importar</p>
+    <h2 style="font-size:22px;margin-top:4px">Carga tu CSV de pedidos</h2>
+  </div>
+  <div class="dlg-b">
+    <div class="drop" id="drop">
+      Arrastra el archivo aquí o <button class="tbtn ghost" id="pick" style="padding:4px 10px">elige uno</button>
+      <input type="file" id="file" accept=".csv,text/csv" hidden>
+    </div>
+    <p class="hint" style="margin-top:14px">Se reconocen las columnas por su nombre, en español o en inglés. Lo mínimo: una fecha, un producto y un importe. Si además hay coste, cantidad, cliente o canal, se aprovechan.</p>
+    <div id="csv-msg" style="margin-top:12px"></div>
+  </div>
+  <div class="dlg-f">
+    <button class="tbtn ghost" id="csv-close">Cerrar</button>
+    <button class="tbtn ghost" id="csv-sample">Descargar plantilla</button>
+  </div>
+</dialog>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+
+/* ============================================================
+   PERFIL LOCAL — se guarda en este navegador, sin servidor
+   ============================================================ */
+const DEFAULTS = { name:'Verdes & Co.', sector:'Suplementos y salud', currency:'EUR', fixed:1800, target:35, seen:false };
+let profile = load();
+function load(){
+  try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem('contador.profile') || '{}')); }
+  catch(e){ return Object.assign({}, DEFAULTS); }
+}
+function save(){
+  try { localStorage.setItem('contador.profile', JSON.stringify(profile)); } catch(e){}
+}
+const SYM = { EUR:'€', USD:'$', GBP:'£' };
+const money = (n, dec) => {
+  const d = dec === undefined ? 0 : dec;
+  return n.toLocaleString('es-ES', {minimumFractionDigits:d, maximumFractionDigits:d}) + ' ' + (SYM[profile.currency] || '€');
+};
+const pct = (n, d) => (n * 100).toFixed(d === undefined ? 1 : d).replace('.', ',') + ' %';
+const MES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const MESL = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DOW = ['lun','mar','mié','jue','vie','sáb','dom'];
+
+/* ============================================================
+   TIENDA DE EJEMPLO — generada con semilla fija (misma cada vez)
+   ============================================================ */
+function rng(seed){ let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+
+const CATALOG = [
+  {sku:'MAG-01', name:'Magnesio bisglicinato',  cat:'Suplementos', price:24.90, cost:8.10,  pop:1.00, seas:[1,1,.9,.9,.9,.8,.7,.7,1,1.15,1.2,1.15]},
+  {sku:'MEL-01', name:'Melatonina 1,9 mg',      cat:'Suplementos', price:16.50, cost:4.20,  pop:.86, seas:[1.1,1,.95,.9,.85,.75,.7,.8,1.1,1.2,1.25,1.1]},
+  {sku:'ASH-01', name:'Ashwagandha KSM-66',     cat:'Suplementos', price:29.90, cost:11.40, pop:.62, seas:[1.15,1.05,1,.95,.9,.8,.7,.75,1.05,1.15,1.2,1.1]},
+  {sku:'OMG-01', name:'Omega 3 concentrado',    cat:'Suplementos', price:27.50, cost:12.80, pop:.55, seas:[1.1,1,1,.95,.9,.85,.75,.8,1,1.1,1.15,1.1]},
+  {sku:'INF-01', name:'Infusión noche 30 sobres', cat:'Infusiones',cat2:1, price:12.90, cost:3.60, pop:.74, seas:[1.2,1.1,1,.9,.8,.7,.6,.7,1,1.2,1.35,1.3]},
+  {sku:'INF-02', name:'Infusión digestiva',     cat:'Infusiones',  price:11.90, cost:3.30,  pop:.45, seas:[1.1,1,1,.95,.9,.85,.8,.85,1,1.05,1.1,1.25]},
+  {sku:'ANT-01', name:'Antifaz de seda',        cat:'Descanso',    price:19.90, cost:9.70,  pop:.50, seas:[1,.95,.95,1,1.05,1.15,1.3,1.25,1,.95,1.1,1.2]},
+  {sku:'ALM-01', name:'Almohada cervical',      cat:'Descanso',    price:59.00, cost:31.50, pop:.28, seas:[1,1,1,1,.95,.9,.85,.9,1.05,1.1,1.3,1.2]},
+  {sku:'DIF-01', name:'Difusor de aromas',      cat:'Descanso',    price:44.00, cost:26.80, pop:.24, seas:[1.05,1,.95,.9,.85,.8,.8,.85,1,1.1,1.4,1.35]},
+  {sku:'SPR-01', name:'Spray de lavanda',       cat:'Descanso',    price:14.50, cost:4.90,  pop:.58, seas:[1,1,1.05,1.05,1,.95,.9,.95,1,1.05,1.15,1.15]},
+  {sku:'PCK-01', name:'Pack rutina de noche',   cat:'Packs',       price:54.90, cost:19.30, pop:.42, seas:[1.15,1.05,1,.95,.9,.8,.7,.8,1.05,1.15,1.45,1.4]},
+  {sku:'PCK-02', name:'Pack iniciación',        cat:'Packs',       price:39.90, cost:14.60, pop:.36, seas:[1.2,1.1,1,.95,.9,.85,.75,.85,1.1,1.15,1.3,1.2]},
+  {sku:'LIB-01', name:'Guía del sueño (libro)', cat:'Otros',       price:18.00, cost:7.20,  pop:.20, seas:[1.1,1,1,.95,.9,.85,.8,.85,1,1.05,1.15,1.25]},
+  {sku:'BOT-01', name:'Botella térmica',        cat:'Otros',       price:26.00, cost:16.40, pop:.18, seas:[1,1,1,1.05,1.1,1.15,1.2,1.1,1,.95,1.1,1.15]}
+];
+const CHANNELS = [
+  {name:'Búsqueda orgánica', w:.30, disc:.02, ship:3.20},
+  {name:'Instagram',         w:.22, disc:.09, ship:3.60},
+  {name:'Email',             w:.18, disc:.12, ship:3.10},
+  {name:'Google Ads',        w:.16, disc:.06, ship:3.70},
+  {name:'TikTok',            w:.09, disc:.14, ship:3.90},
+  {name:'Directo',           w:.05, disc:.01, ship:3.00}
+];
+
+function demoOrders(){
+  const r = rng(20260803);
+  const out = [];
+  const end = new Date(); end.setHours(0,0,0,0); end.setDate(end.getDate() - 1);
+  const start = new Date(end); start.setMonth(start.getMonth() - 17); start.setDate(1);
+  /* base de clientes con cola larga: pocos compran mucho */
+  const NC = 520;
+  const customers = [];
+  for(let i = 0; i < NC; i++){
+    const heavy = r() < 0.09;
+    customers.push({ id:'C' + String(1000 + i), loyalty: heavy ? 0.55 + r() * 0.4 : r() * 0.22, first:null });
+  }
+  const chanCum = []; let acc = 0;
+  for(const c of CHANNELS){ acc += c.w; chanCum.push(acc); }
+  const pickChan = () => { const x = r(); for(let i = 0; i < chanCum.length; i++) if(x <= chanCum[i]) return CHANNELS[i]; return CHANNELS[0]; };
+
+  let oid = 4100;
+  const days = Math.round((end - start) / 86400000);
+  for(let d = 0; d <= days; d++){
+    const date = new Date(start); date.setDate(date.getDate() + d);
+    const m = date.getMonth(), dow = (date.getDay() + 6) % 7;
+    /* crecimiento del negocio + estacionalidad + fin de semana flojo */
+    const growth = 1 + 0.55 * (d / days);
+    const dowF = [1.12, 1.08, 1.05, 1.02, .95, .78, .82][dow];
+    const black = (m === 10 && date.getDate() > 20) ? 2.1 : 1;
+    const lambda = 2.6 * growth * dowF * black;
+    let n = 0; const L = Math.exp(-lambda); let p = 1;
+    do { n++; p *= r(); } while(p > L); n--;
+    for(let k = 0; k < n; k++){
+      /* cliente: recurrente o nuevo */
+      let cust;
+      if(r() < 0.34){
+        const pool = customers.filter(c => c.first && c.first < date);
+        cust = pool.length ? pool[Math.floor(Math.pow(r(), 2) * pool.length)] : customers[Math.floor(r() * NC)];
+      } else {
+        cust = customers[Math.floor(r() * NC)];
+      }
+      if(!cust.first) cust.first = date;
+      const ch = pickChan();
+      oid++;
+      const lines = 1 + (r() < 0.32 ? 1 : 0) + (r() < 0.09 ? 1 : 0);
+      const used = {};
+      for(let l = 0; l < lines; l++){
+        /* elección del producto ponderada por popularidad y estacionalidad */
+        let prod = null, guard = 0;
+        while(!prod && guard++ < 40){
+          const cand = CATALOG[Math.floor(r() * CATALOG.length)];
+          if(used[cand.sku]) continue;
+          if(r() < cand.pop * cand.seas[m] * 0.72) prod = cand;
+        }
+        if(!prod) continue;
+        used[prod.sku] = 1;
+        const qty = r() < 0.82 ? 1 : (r() < 0.8 ? 2 : 3);
+        const disc = Math.max(0, ch.disc + (r() - 0.5) * 0.06) * (black > 1 ? 2.4 : 1);
+        out.push({
+          date: new Date(date), order: 'P-' + oid, customer: cust.id,
+          sku: prod.sku, product: prod.name, category: prod.cat,
+          qty, price: prod.price, cost: prod.cost,
+          discount: +(prod.price * qty * Math.min(disc, .45)).toFixed(2),
+          shipping: l === 0 ? ch.ship : 0,
+          channel: ch.name
+        });
+      }
+    }
+  }
+  return out;
+}
+
+/* ============================================================
+   CSV — lectura tolerante de nombres de columna
+   ============================================================ */
+function parseCSV(text){
+  text = text.replace(/^\uFEFF/, '');
+  const delim = (text.split('\n')[0].match(/;/g) || []).length > (text.split('\n')[0].match(/,/g) || []).length ? ';' : ',';
+  const rows = []; let row = [], cell = '', q = false;
+  for(let i = 0; i < text.length; i++){
+    const c = text[i];
+    if(q){
+      if(c === '"'){ if(text[i+1] === '"'){ cell += '"'; i++; } else q = false; }
+      else cell += c;
+    } else if(c === '"'){ q = true; }
+    else if(c === delim){ row.push(cell); cell = ''; }
+    else if(c === '\n'){ row.push(cell); rows.push(row); row = []; cell = ''; }
+    else if(c !== '\r'){ cell += c; }
+  }
+  if(cell || row.length){ row.push(cell); rows.push(row); }
+  return rows.filter(r => r.some(v => v.trim() !== ''));
+}
+const FIELDS = {
+  date:      ['fecha','date','created_at','order_date','día','dia','fecha_pedido','processed_at'],
+  order:     ['pedido','order','order_id','id_pedido','nº pedido','numero','name','order_number'],
+  customer:  ['cliente','customer','customer_id','email','comprador','client'],
+  product:   ['producto','product','articulo','artículo','item','nombre','title','product_title','descripcion','descripción'],
+  sku:       ['sku','ref','referencia','codigo','código','variant_sku'],
+  category:  ['categoria','categoría','category','tipo','familia','product_type','coleccion','colección'],
+  qty:       ['cantidad','qty','quantity','unidades','uds','units'],
+  price:     ['precio','price','pvp','importe','total','subtotal','revenue','ingresos','unit_price','lineitem price','amount'],
+  cost:      ['coste','costo','cost','cogs','coste_unitario','unit_cost','purchase_price'],
+  discount:  ['descuento','discount','discounts','rebaja'],
+  shipping:  ['envio','envío','shipping','portes','shipping_cost'],
+  channel:   ['canal','channel','origen','source','utm_source','referrer']
+};
+function mapHeaders(head){
+  const norm = s => String(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+                     .trim().replace(/[_\-.]+/g, ' ').replace(/\s+/g, ' ');
+  const bare = s => norm(s).replace(/\s/g, '');
+  const map = {}, taken = new Set();
+  /* 1ª pasada: coincidencia exacta */
+  head.forEach((h, i) => {
+    if(taken.has(i)) return;
+    const b = bare(h);
+    for(const key in FIELDS){
+      if(map[key] !== undefined) continue;
+      if(FIELDS[key].some(a => bare(a) === b)){ map[key] = i; taken.add(i); return; }
+    }
+  });
+  /* 2ª pasada: la cabecera contiene el alias */
+  head.forEach((h, i) => {
+    if(taken.has(i)) return;
+    const b = bare(h);
+    for(const key in FIELDS){
+      if(map[key] !== undefined) continue;
+      if(FIELDS[key].some(a => b.includes(bare(a)))){ map[key] = i; taken.add(i); return; }
+    }
+  });
+  return map;
+}
+function num(v){
+  if(v == null) return 0;
+  let s = String(v).replace(/[^\d,.\-]/g, '').trim();
+  if(!s) return 0;
+  if(s.includes(',') && s.includes('.')) s = s.lastIndexOf(',') > s.lastIndexOf('.') ? s.replace(/\./g,'').replace(',','.') : s.replace(/,/g,'');
+  else if(s.includes(',')) s = s.replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+function parseDate(v){
+  if(!v) return null;
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if(m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{2,4})/);
+  if(m){ let y = +m[3]; if(y < 100) y += 2000; return new Date(y, +m[2]-1, +m[1]); }
+  const d = new Date(s);
+  return isNaN(d) ? null : new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function rowsToOrders(rows){
+  const map = mapHeaders(rows[0]);
+  if(map.date === undefined) throw new Error('No se ha encontrado ninguna columna de fecha.');
+  if(map.price === undefined) throw new Error('No se ha encontrado ninguna columna de importe o precio.');
+  const out = [];
+  for(let i = 1; i < rows.length; i++){
+    const r = rows[i];
+    const date = parseDate(r[map.date]);
+    if(!date) continue;
+    const qty = map.qty !== undefined ? (num(r[map.qty]) || 1) : 1;
+    const price = num(r[map.price]);
+    if(!price) continue;
+    out.push({
+      date, order: map.order !== undefined ? r[map.order] : 'L' + i,
+      customer: map.customer !== undefined ? String(r[map.customer]).trim() : 'L' + i,
+      sku: map.sku !== undefined ? r[map.sku] : '',
+      product: map.product !== undefined ? String(r[map.product]).trim() : (map.sku !== undefined ? r[map.sku] : 'Sin nombre'),
+      category: map.category !== undefined ? String(r[map.category]).trim() || 'Sin categoría' : 'Sin categoría',
+      qty,
+      price: price / (map.qty !== undefined && price > 0 && String(r[map.price]).length ? 1 : 1),
+      cost: map.cost !== undefined ? num(r[map.cost]) : 0,
+      discount: map.discount !== undefined ? Math.abs(num(r[map.discount])) : 0,
+      shipping: map.shipping !== undefined ? num(r[map.shipping]) : 0,
+      channel: map.channel !== undefined ? String(r[map.channel]).trim() || 'Sin canal' : 'Sin canal'
+    });
+  }
+  if(!out.length) throw new Error('No se ha podido leer ninguna fila con fecha e importe válidos.');
+  return { orders: out, hasCost: map.cost !== undefined };
+}
+
+/* ============================================================
+   MÉTRICAS
+   ============================================================ */
+let DATA = { orders:[], hasCost:true, demo:true };
+let VIEW = { orders:[], from:null, to:null, months:12 };
+
+const rev  = l => l.price * l.qty - l.discount;
+const cogs = l => l.cost * l.qty;
+const marg = l => rev(l) - cogs(l) - l.shipping;
+const ym   = d => d.getFullYear() * 12 + d.getMonth();
+
+function applyPeriod(){
+  const months = +$('#period').value;
+  VIEW.months = months;
+  const all = DATA.orders;
+  if(!all.length){ VIEW.orders = []; return; }
+  const max = new Date(Math.max(...all.map(o => o.date)));
+  let from;
+  if(months === 0){ from = new Date(Math.min(...all.map(o => o.date))); }
+  else { from = new Date(max); from.setMonth(from.getMonth() - months + 1); from.setDate(1); }
+  VIEW.from = from; VIEW.to = max;
+  VIEW.orders = all.filter(o => o.date >= from && o.date <= max);
+}
+
+function totals(lines){
+  let r = 0, c = 0, s = 0, d = 0, u = 0;
+  const orders = new Set(), custs = new Set();
+  for(const l of lines){
+    r += l.price * l.qty; d += l.discount; c += cogs(l); s += l.shipping; u += l.qty;
+    orders.add(l.order); custs.add(l.customer);
+  }
+  const net = r - d;
+  return { gross:r, discount:d, revenue:net, cogs:c, shipping:s, margin:net - c - s,
+           units:u, orders:orders.size, customers:custs.size,
+           aov: orders.size ? net / orders.size : 0,
+           mrate: net ? (net - c - s) / net : 0 };
+}
+
+function byMonth(lines){
+  const m = new Map();
+  for(const l of lines){
+    const k = ym(l.date);
+    if(!m.has(k)) m.set(k, []);
+    m.get(k).push(l);
+  }
+  return [...m.entries()].sort((a,b) => a[0]-b[0]).map(([k, ls]) => {
+    const t = totals(ls);
+    return { key:k, year:Math.floor(k/12), month:k%12, label:MES[k%12] + (k%12===0 ? " '" + String(Math.floor(k/12)).slice(-2) : ''), ...t };
+  });
+}
+
+function groupBy(lines, keyFn){
+  const m = new Map();
+  for(const l of lines){
+    const k = keyFn(l);
+    if(!m.has(k)) m.set(k, []);
+    m.get(k).push(l);
+  }
+  return [...m.entries()].map(([k, ls]) => ({ key:k, lines:ls, ...totals(ls) }));
+}
+
+function customerStats(lines){
+  const m = new Map();
+  for(const l of lines){
+    if(!m.has(l.customer)) m.set(l.customer, { id:l.customer, revenue:0, margin:0, orders:new Set(), first:l.date, last:l.date });
+    const c = m.get(l.customer);
+    c.revenue += rev(l); c.margin += marg(l); c.orders.add(l.order);
+    if(l.date < c.first) c.first = l.date;
+    if(l.date > c.last) c.last = l.date;
+  }
+  return [...m.values()].map(c => ({ ...c, orders:c.orders.size, aov:c.revenue / c.orders.size }))
+                        .sort((a,b) => b.revenue - a.revenue);
+}
+
+function pareto(custs){
+  const total = custs.reduce((s,c) => s + c.revenue, 0);
+  let acc = 0;
+  const pts = custs.map((c, i) => { acc += c.revenue; return { x:(i+1)/custs.length, y:total ? acc/total : 0 }; });
+  const find = share => { const p = pts.find(p => p.y >= share); return p ? p.x : 1; };
+  return { pts, top20: pts.length ? pts[Math.max(0, Math.ceil(custs.length*0.2)-1)].y : 0, half:find(0.5) };
+}
+
+/* ============================================================
+   GRÁFICAS — SVG a mano, sin librerías
+   ============================================================ */
+const NS = 'http://www.w3.org/2000/svg';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function svg(w, h, body){
+  return '<svg class="chart" viewBox="0 0 ' + w + ' ' + h + '" role="img">' + body + '</svg>';
+}
+function niceMax(v){
+  if(v <= 0) return 10;
+  const e = Math.pow(10, Math.floor(Math.log10(v)));
+  const f = v / e;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e;
+}
+function chartRevenue(rows){
+  const W = 760, H = 300, P = {t:16, r:52, b:34, l:56};
+  if(!rows.length) return '<p class="hint">Sin datos en este periodo.</p>';
+  const iw = W - P.l - P.r, ih = H - P.t - P.b;
+  const maxR = niceMax(Math.max(...rows.map(r => r.revenue)));
+  const y = v => P.t + ih - (v / maxR) * ih;
+  let s = '';
+  for(let i = 0; i <= 4; i++){
+    const v = maxR * i / 4, yy = y(v);
+    s += '<line class="gl" x1="' + P.l + '" y1="' + yy + '" x2="' + (W-P.r) + '" y2="' + yy + '"/>';
+    s += '<text class="axl" x="' + (P.l-8) + '" y="' + (yy+3) + '" text-anchor="end">' + (v >= 1000 ? Math.round(v/1000) + 'k' : Math.round(v)) + '</text>';
+  }
+  const bw = iw / rows.length, bar = Math.min(38, bw * 0.62);
+  /* umbral de rentabilidad: costes fijos del periodo */
+  const fixed = +profile.fixed || 0;
+  if(fixed > 0 && fixed < maxR){
+    s += '<line x1="' + P.l + '" y1="' + y(fixed) + '" x2="' + (W-P.r) + '" y2="' + y(fixed) + '" stroke="#C2410C" stroke-width="1.5" stroke-dasharray="5 4"/>';
+    s += '<text class="axl" x="' + (W-P.r+6) + '" y="' + (y(fixed)+3) + '" fill="#C2410C">fijos</text>';
+  }
+  rows.forEach((r, i) => {
+    const x = P.l + i * bw + (bw - bar) / 2;
+    s += '<rect x="' + x + '" y="' + y(r.revenue) + '" width="' + bar + '" height="' + Math.max(0, P.t+ih-y(r.revenue)) + '" fill="#0E6E5C33" stroke="#0E6E5C" stroke-width="1.5"><title>' + r.label + ': ' + money(r.revenue) + '</title></rect>';
+    if(rows.length <= 14 || i % 2 === 0)
+      s += '<text class="axl" x="' + (P.l + i*bw + bw/2) + '" y="' + (H-P.b+15) + '" text-anchor="middle">' + r.label + '</text>';
+  });
+  const pts = rows.map((r, i) => (P.l + i*bw + bw/2) + ',' + y(r.margin));
+  s += '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#5B3A83" stroke-width="2.5" stroke-linejoin="round"/>';
+  rows.forEach((r, i) => {
+    s += '<circle cx="' + (P.l + i*bw + bw/2) + '" cy="' + y(r.margin) + '" r="3.5" fill="#5B3A83"><title>Margen ' + r.label + ': ' + money(r.margin) + ' (' + pct(r.mrate) + ')</title></circle>';
+  });
+  return svg(W, H, s);
+}
+function chartScatter(prods){
+  const W = 760, H = 330, P = {t:18, r:20, b:44, l:58};
+  if(!prods.length) return '<p class="hint">Sin datos.</p>';
+  const iw = W-P.l-P.r, ih = H-P.t-P.b;
+  const maxX = niceMax(Math.max(...prods.map(p => p.revenue)));
+  const rates = prods.map(p => p.mrate);
+  const maxY = Math.max(0.6, niceMax(Math.max(...rates)));
+  const x = v => P.l + (v / maxX) * iw, y = v => P.t + ih - (v / maxY) * ih;
+  let s = '';
+  for(let i = 0; i <= 4; i++){
+    const v = maxY*i/4;
+    s += '<line class="gl" x1="' + P.l + '" y1="' + y(v) + '" x2="' + (W-P.r) + '" y2="' + y(v) + '"/>';
+    s += '<text class="axl" x="' + (P.l-8) + '" y="' + (y(v)+3) + '" text-anchor="end">' + Math.round(v*100) + '%</text>';
+  }
+  for(let i = 0; i <= 4; i++){
+    const v = maxX*i/4;
+    s += '<text class="axl" x="' + x(v) + '" y="' + (H-P.b+16) + '" text-anchor="middle">' + (v>=1000 ? Math.round(v/1000)+'k' : Math.round(v)) + '</text>';
+  }
+  const tgt = (+profile.target || 0) / 100;
+  if(tgt > 0 && tgt < maxY){
+    s += '<line x1="' + P.l + '" y1="' + y(tgt) + '" x2="' + (W-P.r) + '" y2="' + y(tgt) + '" stroke="#C2410C" stroke-width="1.5" stroke-dasharray="5 4"/>';
+    s += '<text class="axl" x="' + (P.l+6) + '" y="' + (y(tgt)-6) + '" fill="#C2410C">objetivo ' + Math.round(tgt*100) + '%</text>';
+  }
+  const maxU = Math.max(...prods.map(p => p.units));
+  for(const p of prods){
+    const r = 5 + 11 * Math.sqrt(p.units / maxU);
+    const below = tgt > 0 && p.mrate < tgt;
+    s += '<circle cx="' + x(p.revenue) + '" cy="' + y(p.mrate) + '" r="' + r.toFixed(1) + '" fill="' + (below ? '#C2410C22' : '#0E6E5C22') + '" stroke="' + (below ? '#C2410C' : '#0E6E5C') + '" stroke-width="1.5"><title>' + esc(p.key) + '\nIngresos ' + money(p.revenue) + '\nMargen ' + pct(p.mrate) + '\n' + p.units + ' uds</title></circle>';
+  }
+  const top = [...prods].sort((a,b) => b.revenue-a.revenue).slice(0, 5);
+  for(const p of top){
+    s += '<text class="axl" x="' + (x(p.revenue)+13) + '" y="' + (y(p.mrate)-9) + '" fill="#14231C">' + esc(p.key.length > 22 ? p.key.slice(0,21)+'…' : p.key) + '</text>';
+  }
+  s += '<text class="axl" x="' + (P.l+iw/2) + '" y="' + (H-4) + '" text-anchor="middle">Ingresos en el periodo →</text>';
+  return svg(W, H, s);
+}
+function chartPareto(p){
+  const W = 760, H = 280, P = {t:16, r:20, b:38, l:52};
+  if(!p.pts.length) return '<p class="hint">Sin datos.</p>';
+  const iw = W-P.l-P.r, ih = H-P.t-P.b;
+  const x = v => P.l + v*iw, y = v => P.t + ih - v*ih;
+  let s = '';
+  for(let i = 0; i <= 4; i++){
+    const v = i/4;
+    s += '<line class="gl" x1="' + P.l + '" y1="' + y(v) + '" x2="' + (W-P.r) + '" y2="' + y(v) + '"/>';
+    s += '<text class="axl" x="' + (P.l-8) + '" y="' + (y(v)+3) + '" text-anchor="end">' + Math.round(v*100) + '%</text>';
+    s += '<text class="axl" x="' + x(v) + '" y="' + (H-P.b+16) + '" text-anchor="middle">' + Math.round(v*100) + '%</text>';
+  }
+  s += '<line x1="' + P.l + '" y1="' + y(0) + '" x2="' + (W-P.r) + '" y2="' + y(1) + '" stroke="var(--rule)" stroke-width="1.5" stroke-dasharray="4 4"/>';
+  const step = Math.max(1, Math.floor(p.pts.length / 260));
+  const pts = p.pts.filter((_, i) => i % step === 0 || i === p.pts.length-1).map(q => x(q.x).toFixed(1) + ',' + y(q.y).toFixed(1));
+  s += '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#5B3A83" stroke-width="2.5"/>';
+  s += '<line x1="' + x(.2) + '" y1="' + P.t + '" x2="' + x(.2) + '" y2="' + y(0) + '" stroke="#C2410C" stroke-width="1.5" stroke-dasharray="5 4"/>';
+  s += '<circle cx="' + x(.2) + '" cy="' + y(p.top20) + '" r="5" fill="#C2410C"/>';
+  s += '<text class="axl" x="' + (x(.2)+9) + '" y="' + (y(p.top20)-9) + '" fill="#C2410C">20% de clientes → ' + pct(p.top20, 0) + ' de ingresos</text>';
+  s += '<text class="axl" x="' + (P.l+iw/2) + '" y="' + (H-3) + '" text-anchor="middle">Clientes ordenados por gasto →</text>';
+  return svg(W, H, s);
+}
+function chartCats(cats){
+  const W = 760, rowH = 42, H = cats.length * rowH + 20;
+  const maxR = Math.max(...cats.map(c => c.revenue), 1);
+  const maxM = Math.max(...cats.map(c => c.margin), 1);
+  let s = '';
+  cats.forEach((c, i) => {
+    const yy = i * rowH + 10;
+    s += '<text class="axl" x="0" y="' + (yy+11) + '" fill="#14231C" style="font-size:11.5px">' + esc(c.key) + '</text>';
+    s += '<rect x="150" y="' + yy + '" width="' + (c.revenue/maxR*280).toFixed(1) + '" height="13" fill="#0E6E5C33" stroke="#0E6E5C" stroke-width="1.2"/>';
+    s += '<text class="axl" x="' + (150 + c.revenue/maxR*280 + 7) + '" y="' + (yy+11) + '">' + money(c.revenue) + '</text>';
+    s += '<rect x="150" y="' + (yy+16) + '" width="' + (c.margin/maxM*280).toFixed(1) + '" height="13" fill="#5B3A8333" stroke="#5B3A83" stroke-width="1.2"/>';
+    s += '<text class="axl" x="' + (150 + c.margin/maxM*280 + 7) + '" y="' + (yy+27) + '">' + money(c.margin) + ' · ' + pct(c.mrate, 0) + '</text>';
+  });
+  return svg(W, H, s) + '<div class="legend"><span><i style="background:#0E6E5C33;border:1.5px solid #0E6E5C"></i>Ingresos</span><span><i style="background:#5B3A8333;border:1.5px solid #5B3A83"></i>Margen</span></div>';
+}
+function chartDow(lines){
+  const W = 760, H = 240, P = {t:16, r:20, b:34, l:56};
+  const sums = [0,0,0,0,0,0,0], days = [0,0,0,0,0,0,0], seen = new Set();
+  for(const l of lines){
+    const d = (l.date.getDay()+6)%7;
+    sums[d] += rev(l);
+    const k = d + '|' + l.date.toISOString().slice(0,10);
+    if(!seen.has(k)){ seen.add(k); days[d]++; }
+  }
+  const avg = sums.map((s, i) => days[i] ? s/days[i] : 0);
+  const iw = W-P.l-P.r, ih = H-P.t-P.b, maxV = niceMax(Math.max(...avg, 1));
+  const y = v => P.t + ih - (v/maxV)*ih;
+  let s = '';
+  for(let i = 0; i <= 4; i++){
+    const v = maxV*i/4;
+    s += '<line class="gl" x1="' + P.l + '" y1="' + y(v) + '" x2="' + (W-P.r) + '" y2="' + y(v) + '"/>';
+    s += '<text class="axl" x="' + (P.l-8) + '" y="' + (y(v)+3) + '" text-anchor="end">' + Math.round(v) + '</text>';
+  }
+  const bw = iw/7, best = avg.indexOf(Math.max(...avg));
+  avg.forEach((v, i) => {
+    const x = P.l + i*bw + bw*0.18, w = bw*0.64;
+    s += '<rect x="' + x + '" y="' + y(v) + '" width="' + w + '" height="' + Math.max(0, P.t+ih-y(v)) + '" fill="' + (i===best ? '#0E6E5C' : '#0E6E5C33') + '" stroke="#0E6E5C" stroke-width="1.5"><title>' + DOW[i] + ': ' + money(v) + ' de media</title></rect>';
+    s += '<text class="axl" x="' + (P.l+i*bw+bw/2) + '" y="' + (H-P.b+16) + '" text-anchor="middle">' + DOW[i] + '</text>';
+  });
+  return svg(W, H, s);
+}
+function chartHeat(lines){
+  if(!lines.length) return '<p class="hint">Sin datos.</p>';
+  const weeks = new Map();
+  const min = new Date(Math.min(...lines.map(l => l.date))), max = new Date(Math.max(...lines.map(l => l.date)));
+  const wkey = d => { const t = new Date(d); t.setDate(t.getDate() - ((t.getDay()+6)%7)); return t.getTime(); };
+  for(const l of lines) weeks.set(wkey(l.date), (weeks.get(wkey(l.date)) || 0) + rev(l));
+  const all = []; let cur = wkey(min);
+  while(cur <= max.getTime()){ all.push({t:cur, v:weeks.get(cur) || 0}); cur += 7*86400000; }
+  const maxV = Math.max(...all.map(a => a.v), 1);
+  const cw = 15, ch = 26, cols = Math.min(all.length, 54);
+  const W = 760, H = Math.ceil(all.length/cols)*ch + 46;
+  let s = '';
+  all.forEach((a, i) => {
+    const r = Math.floor(i/cols), c = i%cols;
+    const alpha = (a.v/maxV);
+    const d = new Date(a.t);
+    s += '<rect x="' + (c*cw) + '" y="' + (r*ch+16) + '" width="' + (cw-2.5) + '" height="' + (ch-5) + '" fill="rgba(14,110,92,' + (0.06 + alpha*0.88).toFixed(3) + ')" stroke="#C9D2C6" stroke-width=".8"><title>Semana del ' + d.getDate() + ' ' + MES[d.getMonth()] + ': ' + money(a.v) + '</title></rect>';
+    if(d.getDate() <= 7) s += '<text class="axl" x="' + (c*cw) + '" y="' + (r*ch+10) + '">' + MES[d.getMonth()] + '</text>';
+  });
+  s += '<text class="axl" x="0" y="' + (H-8) + '">menos</text>';
+  for(let i = 0; i < 5; i++) s += '<rect x="' + (46+i*16) + '" y="' + (H-19) + '" width="14" height="12" fill="rgba(14,110,92,' + (0.06+i*0.22).toFixed(2) + ')" stroke="#C9D2C6" stroke-width=".8"/>';
+  s += '<text class="axl" x="' + (46+5*16+6) + '" y="' + (H-8) + '">más</text>';
+  return svg(W, H, s);
+}
+
+/* ============================================================
+   AVISOS — hallazgos calculados, no opiniones
+   ============================================================ */
+function buildAlerts(){
+  const L = VIEW.orders, out = [];
+  if(!L.length) return out;
+  const T = totals(L);
+  const months = byMonth(L);
+  const prods = groupBy(L, l => l.product).sort((a,b) => b.revenue-a.revenue);
+  const custs = customerStats(L);
+  const P = pareto(custs);
+  const tgt = (+profile.target || 0)/100;
+
+  /* superventas con margen bajo */
+  if(prods.length > 3){
+    const top = prods.slice(0, Math.max(3, Math.ceil(prods.length*0.3)));
+    const weak = top.filter(p => p.mrate < T.mrate - 0.05).sort((a,b) => a.mrate-b.mrate)[0];
+    if(weak){
+      const better = prods.find(p => p.mrate > T.mrate + 0.05 && p.revenue < weak.revenue);
+      out.push({ type:'', t:'Vende mucho y deja poco: ' + weak.key,
+        b:'Es de lo que más factura (<b>' + money(weak.revenue) + '</b>) pero su margen es del <b>' + pct(weak.mrate) + '</b>, frente al <b>' + pct(T.mrate) + '</b> de la tienda.' +
+          (better ? ' <b>' + esc(better.key) + '</b> factura menos y deja <b>' + pct(better.mrate) + '</b>: mover tráfico hacia ahí sube el margen sin vender más unidades.' : '') });
+    }
+  }
+  /* concentración de clientes */
+  if(custs.length > 12){
+    out.push({ type:P.top20 > 0.55 ? '' : 'info', t:'El ' + pct(0.2,0) + ' de tus clientes trae el ' + pct(P.top20,0) + ' de los ingresos',
+      b:'Tienes <b>' + custs.length + '</b> clientes en el periodo y <b>' + Math.round(custs.length*P.half*100)/100 + '</b>… concretamente el <b>' + pct(P.half,0) + '</b> de ellos ya suma la mitad de tu facturación.' +
+        (P.top20 > 0.55 ? ' Esa dependencia es un riesgo: si se van unos pocos, se nota mucho.' : ' El reparto es sano, sin dependencia de unos pocos.') });
+  }
+  /* tendencia */
+  if(months.length >= 4){
+    const h = Math.floor(months.length/2);
+    const a = months.slice(0, h).reduce((s,m) => s+m.revenue, 0) / h;
+    const b = months.slice(-h).reduce((s,m) => s+m.revenue, 0) / h;
+    const ch = a ? (b-a)/a : 0;
+    if(Math.abs(ch) > 0.08)
+      out.push({ type: ch > 0 ? 'good' : '', t: (ch>0?'Vas hacia arriba: ':'Vas hacia abajo: ') + (ch>0?'+':'') + pct(ch,0) + ' de ingresos',
+        b:'La media mensual ha pasado de <b>' + money(a) + '</b> en la primera mitad del periodo a <b>' + money(b) + '</b> en la segunda.' });
+  }
+  /* costes fijos */
+  const fixed = +profile.fixed || 0;
+  if(fixed > 0 && months.length){
+    const avgM = months.reduce((s,m) => s+m.margin, 0)/months.length;
+    const bad = months.filter(m => m.margin < fixed).length;
+    out.push({ type: avgM >= fixed ? 'good' : '', t: avgM >= fixed ? 'Cubres los costes fijos' : 'No llegas a cubrir los costes fijos',
+      b:'Tu margen medio es de <b>' + money(avgM) + '</b> al mes frente a <b>' + money(fixed) + '</b> de fijos. ' +
+        (bad ? 'En <b>' + bad + '</b> de ' + months.length + ' meses el margen quedó por debajo.' : 'Ningún mes quedó por debajo.') });
+  }
+  /* margen contra objetivo */
+  if(tgt > 0){
+    const dif = T.mrate - tgt;
+    out.push({ type: dif >= 0 ? 'good' : '', t: dif >= 0 ? 'Estás por encima de tu objetivo de margen' : 'Estás por debajo de tu objetivo de margen',
+      b:'Margen real <b>' + pct(T.mrate) + '</b> frente al objetivo <b>' + pct(tgt,0) + '</b>. Cada punto porcentual son <b>' + money(T.revenue*0.01) + '</b> en este periodo.' });
+  }
+  /* descuentos */
+  if(T.gross && T.discount / T.gross > 0.06){
+    const chans = groupBy(L, l => l.channel).map(c => ({ ...c, dr: c.gross ? c.discount/c.gross : 0 })).sort((a,b) => b.dr-a.dr);
+    out.push({ type:'', t:'Los descuentos se están comiendo ' + money(T.discount),
+      b:'Es el <b>' + pct(T.discount/T.gross) + '</b> de lo facturado. Donde más pesan: <b>' + esc(chans[0].key) + '</b> (' + pct(chans[0].dr) + ').' });
+  }
+  /* clientes que se enfrían */
+  const cold = coldCustomers();
+  if(cold.length)
+    out.push({ type:'info', t: cold.length + ' clientes buenos llevan tiempo sin comprar',
+      b:'Han gastado <b>' + money(cold.reduce((s,c) => s+c.revenue, 0)) + '</b> entre todos y su última compra fue hace más de <b>' + Math.round(cold[0].gapRef) + '</b> días. Es la lista más barata de reactivar.' });
+  return out;
+}
+function coldCustomers(){
+  const custs = customerStats(VIEW.orders).filter(c => c.orders >= 2);
+  if(!custs.length) return [];
+  const max = VIEW.to || new Date();
+  const gaps = custs.map(c => (c.last - c.first)/86400000/Math.max(1, c.orders-1)).filter(g => g > 0).sort((a,b) => a-b);
+  const typical = gaps.length ? gaps[Math.floor(gaps.length/2)] : 60;
+  const ref = Math.max(45, typical*2);
+  return custs.map(c => ({ ...c, days:Math.round((max-c.last)/86400000), gapRef:ref }))
+              .filter(c => c.days > ref)
+              .sort((a,b) => b.revenue-a.revenue).slice(0, 8);
+}
+
+/* ============================================================
+   TIRA DE CAJA
+   ============================================================ */
+function renderTape(){
+  const T = totals(VIEW.orders);
+  const f = VIEW.from, t = VIEW.to;
+  const fmt = d => d ? d.getDate() + ' ' + MES[d.getMonth()] + ' ' + String(d.getFullYear()).slice(-2) : '—';
+  const fixedTotal = (+profile.fixed || 0) * Math.max(1, byMonth(VIEW.orders).length);
+  const net = T.margin - fixedTotal;
+  let h = '<h4>' + esc(profile.name) + '</h4>' +
+    '<p class="meta">' + fmt(f) + ' — ' + fmt(t) + '<br>' + T.orders.toLocaleString('es-ES') + ' pedidos · ' + T.units.toLocaleString('es-ES') + ' uds</p><hr>' +
+    line('Ventas brutas', money(T.gross)) +
+    line('Descuentos', '−' + money(T.discount)) +
+    line('Ingresos', money(T.revenue)) + '<hr>' +
+    line('Coste de producto', '−' + money(T.cogs)) +
+    line('Envíos', '−' + money(T.shipping)) +
+    '<div class="tline total"><span>Margen bruto</span><span>' + money(T.margin) + '</span></div>' +
+    line('Sobre ingresos', pct(T.mrate)) + '<hr>' +
+    line('Costes fijos', '−' + money(fixedTotal)) +
+    '<div class="tline total"><span>Resultado</span><span>' + money(net) + '</span></div>' +
+    '<hr>' + line('Ticket medio', money(T.aov, 2)) + line('Clientes', T.customers.toLocaleString('es-ES'));
+  h += '<div class="stamp" style="border-color:' + (net >= 0 ? 'var(--teal)' : 'var(--clay)') + ';color:' + (net >= 0 ? 'var(--teal)' : 'var(--clay)') + '">' +
+       (net >= 0 ? 'En beneficio' : 'En pérdidas') + '</div>';
+  $('#tape').innerHTML = h;
+  function line(a, b){ return '<div class="tline"><span>' + a + '</span><span>' + b + '</span></div>'; }
+}
+
+/* ============================================================
+   TABLAS
+   ============================================================ */
+function table(el, cols, rows, sortKey){
+  const st = el._sort || { key:sortKey, dir:-1 };
+  el._sort = st;
+  const sorted = [...rows].sort((a,b) => {
+    const x = a[st.key], y = b[st.key];
+    return (typeof x === 'string' ? x.localeCompare(y) : x - y) * st.dir;
+  });
+  let h = '<thead><tr>' + cols.map(c =>
+    '<th class="' + (c.n ? 'n' : '') + '" data-k="' + c.k + '"' + (st.key === c.k ? ' aria-sort="' + (st.dir < 0 ? 'descending' : 'ascending') + '"' : '') + '>' + c.h + '</th>').join('') + '</tr></thead><tbody>';
+  const max = {};
+  cols.forEach(c => { if(c.bar) max[c.k] = Math.max(...rows.map(r => r[c.k]), 1); });
+  for(const r of sorted){
+    h += '<tr>' + cols.map(c => {
+      const v = c.f ? c.f(r[c.k], r) : r[c.k];
+      if(c.bar) return '<td class="n bar-cell"><i style="width:' + (r[c.k]/max[c.k]*100).toFixed(1) + '%"></i><em>' + v + '</em></td>';
+      return '<td class="' + (c.n ? 'n' : '') + '">' + v + '</td>';
+    }).join('') + '</tr>';
+  }
+  el.innerHTML = h + '</tbody>';
+  el.querySelectorAll('th').forEach(th => th.addEventListener('click', () => {
+    const k = th.dataset.k;
+    el._sort = { key:k, dir: st.key === k ? -st.dir : -1 };
+    table(el, cols, rows, sortKey);
+  }));
+}
+
+/* ============================================================
+   INTÉRPRETE DE PREGUNTAS
+   Detecta métrica + dimensión + orden + filtro temporal.
+   No inventa: si no entiende algo, lo dice.
+   ============================================================ */
+const norm = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const METRICS = [
+  { k:'margin',   re:/margen|beneficio|ganancia|rentab|profit/,        label:'margen',        fmt:v => money(v), agg:'sum' },
+  { k:'units',    re:/unidad|uds|cantidad|piezas|volumen/,             label:'unidades',      fmt:v => Math.round(v).toLocaleString('es-ES') + ' uds', agg:'sum' },
+  { k:'orders',   re:/pedido|orden|compras|transaccion/,               label:'pedidos',       fmt:v => Math.round(v).toLocaleString('es-ES') + ' pedidos', agg:'sum' },
+  { k:'customers',re:/cliente|comprador|usuario/,                      label:'clientes',      fmt:v => Math.round(v).toLocaleString('es-ES') + ' clientes', agg:'sum' },
+  { k:'aov',      re:/ticket medio|valor medio|media por pedido|aov/,  label:'ticket medio',  fmt:v => money(v, 2), agg:'avg' },
+  { k:'mrate',    re:/(porcentaje|%|tasa|ratio).*(margen)|margen.*(%|porcentaje)/, label:'porcentaje de margen', fmt:v => pct(v), agg:'rate' },
+  { k:'discount', re:/descuento|rebaja|promocion/,                     label:'descuentos',    fmt:v => money(v), agg:'sum' },
+  { k:'revenue',  re:/ingreso|factura|vent|revenue|dinero|euros|gasto/,label:'ingresos',      fmt:v => money(v), agg:'sum' }
+];
+const DIMS = [
+  { k:'product',  re:/producto|articulo|item|referencia|sku/,  label:'producto', get:l => l.product },
+  { k:'category', re:/categoria|familia|tipo|gama/,            label:'categoría', get:l => l.category },
+  { k:'channel',  re:/canal|origen|fuente|trafico|red social/, label:'canal',    get:l => l.channel },
+  { k:'customer', re:/cliente|comprador/,                      label:'cliente',  get:l => l.customer },
+  { k:'month',    re:/mes|mensual|meses/,                      label:'mes',      get:l => l.date.getFullYear()*12 + l.date.getMonth() },
+  { k:'dow',      re:/dia de la semana|dias de la semana|semana/, label:'día de la semana', get:l => (l.date.getDay()+6)%7 }
+];
+function detectTime(q){
+  const n = norm(q);
+  for(let i = 0; i < 12; i++){
+    if(n.includes(norm(MESL[i]))){
+      const yr = (n.match(/\b(20\d{2})\b/) || [])[1];
+      const years = new Set(DATA.orders.filter(o => o.date.getMonth() === i).map(o => o.date.getFullYear()));
+      return { test: d => d.getMonth() === i && (!yr || d.getFullYear() === +yr),
+               label: MESL[i] + (yr ? ' de ' + yr : (years.size > 1 ? ' (sumando los ' + years.size + ' años)' : '')) };
+    }
+  }
+  const y = n.match(/\b(20\d{2})\b/);
+  if(y) return { test: d => d.getFullYear() === +y[1], label:'el año ' + y[1] };
+  let m;
+  if((m = n.match(/ultim[oa]s?\s+(\d+)\s+(mes|dia)/))){
+    const nn = +m[1], isDay = m[2] === 'dia';
+    const max = VIEW.to || new Date(), from = new Date(max);
+    if(isDay) from.setDate(from.getDate() - nn); else from.setMonth(from.getMonth() - nn);
+    return { test: d => d >= from, label:'los últimos ' + nn + (isDay ? ' días' : ' meses') };
+  }
+  if(/este mes|mes actual/.test(n)){
+    const max = VIEW.to || new Date();
+    return { test: d => d.getMonth() === max.getMonth() && d.getFullYear() === max.getFullYear(), label:'este mes' };
+  }
+  if(/navidad|diciembre/.test(n)) return { test: d => d.getMonth() === 11, label:'diciembre' };
+  if(/verano/.test(n)) return { test: d => d.getMonth() >= 5 && d.getMonth() <= 7, label:'el verano' };
+  return null;
+}
+function answer(q){
+  const n = norm(q);
+  if(!DATA.orders.length) return { text:'Todavía no hay datos cargados.' };
+  const metricHit = METRICS.find(m => m.re.test(n));
+  const metric = metricHit || METRICS[METRICS.length-1];
+  const worst = /peor|menos|mas bajo|baja|flojo|menor/.test(n);
+  const dim = DIMS.find(d => d.re.test(n));
+  const time = detectTime(q);
+  if(!metricHit && !dim && !time)
+    return { text:'No he entendido qué quieres saber. Prueba nombrando una métrica (ingresos, margen, pedidos, ticket medio) y, si quieres, cómo agruparla (por producto, categoría, canal, cliente, mes o día de la semana).' };
+  let lines = VIEW.orders;
+  if(time) lines = DATA.orders.filter(l => time.test(l.date));
+  if(!lines.length) return { text:'No hay ningún pedido en ' + (time ? time.label : 'ese periodo') + '.' };
+
+  const scope = time ? time.label : 'el periodo seleccionado';
+  /* sin dimensión: total agregado */
+  if(!dim){
+    const T = totals(lines);
+    const v = metric.k === 'mrate' ? T.mrate : T[metric.k];
+    return { big: metric.fmt(v), text:'Es el total de ' + metric.label + ' en ' + scope + '.',
+             detail:[['Ingresos', money(T.revenue)], ['Margen', money(T.margin) + ' (' + pct(T.mrate) + ')'],
+                     ['Pedidos', T.orders.toLocaleString('es-ES')], ['Ticket medio', money(T.aov, 2)]] };
+  }
+  const groups = groupBy(lines, dim.get).map(g => {
+    const v = metric.k === 'mrate' ? g.mrate : (metric.k === 'aov' ? g.aov : g[metric.k]);
+    return { key:g.key, v, g };
+  }).filter(g => isFinite(g.v));
+  if(!groups.length) return { text:'No hay datos suficientes para agrupar por ' + dim.label + '.' };
+  groups.sort((a,b) => worst ? a.v - b.v : b.v - a.v);
+  const top = groups[0];
+  const DOWL = ['lunes','martes','miércoles','jueves','viernes','sábado','domingo'];
+  const nameOf = k => dim.k === 'month' ? MESL[k % 12] + ' de ' + Math.floor(k/12)
+                    : dim.k === 'dow' ? DOWL[k] : String(k);
+  const label = nameOf(top.key);
+  const rank = groups.slice(0, 6).map(g => [nameOf(g.key), metric.fmt(g.v)]);
+  return {
+    big: String(label),
+    text: 'Es el ' + dim.label + ' con ' + (worst ? 'menos ' : 'más ') + metric.label + ' en ' + scope +
+          ': <b>' + metric.fmt(top.v) + '</b>' +
+          (groups.length > 1 ? ', ' + (worst ? 'por debajo de ' : 'por delante de ') + esc(nameOf(groups[1].key)) + ' (' + metric.fmt(groups[1].v) + ').' : '.'),
+    detail: rank
+  };
+}
+function renderAnswer(q){
+  const a = answer(q);
+  let h = '<div class="answer"><p class="eyebrow">' + esc(q) + '</p>';
+  if(a.big) h += '<p class="big">' + esc(a.big) + '</p>';
+  h += '<p style="margin:0;font-size:14.5px">' + (a.text || '') + '</p>';
+  if(a.detail && a.detail.length){
+    h += '<table style="margin-top:16px">';
+    for(const [k, v] of a.detail) h += '<tr><td>' + esc(k) + '</td><td class="n">' + v + '</td></tr>';
+    h += '</table>';
+  }
+  h += '</div>';
+  $('#q-answer').innerHTML = h;
+  const log = $('#q-log');
+  log.insertAdjacentHTML('afterbegin', '<div class="qi"><b>' + esc(q) + '</b> — ' + esc(a.big || '') + '</div>');
+}
+const SUGGEST = [
+  '¿Qué producto me dio más margen?',
+  '¿Qué categoría deja menos beneficio?',
+  '¿Cuál es mi mejor canal de venta?',
+  '¿Cuánto facturé en diciembre?',
+  '¿Qué día de la semana vendo más?',
+  '¿Cuál fue el peor mes en ingresos?',
+  '¿Cuánto me he dejado en descuentos?',
+  '¿Cuál es mi ticket medio por canal?'
+];
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function kpi(k, v, d, cls){
+  return '<div class="kpi"><div class="k">' + k + '</div><div class="v">' + v + '</div>' +
+         (d ? '<div class="d ' + (cls||'flat') + '">' + d + '</div>' : '') + '</div>';
+}
+function render(){
+  applyPeriod();
+  const L = VIEW.orders, T = totals(L), months = byMonth(L);
+  $('#store-name').textContent = profile.sector;
+  document.title = profile.name + ' — Contador';
+
+  /* comparativa con el periodo anterior de igual longitud */
+  let prev = null;
+  if(VIEW.from && VIEW.months){
+    const span = VIEW.to - VIEW.from;
+    const pFrom = new Date(VIEW.from.getTime() - span), pTo = new Date(VIEW.from.getTime() - 1);
+    const earliest = new Date(Math.min(...DATA.orders.map(o => o.date)));
+    const pl = DATA.orders.filter(o => o.date >= pFrom && o.date <= pTo);
+    /* solo si el periodo anterior está cubierto de verdad: si no, la comparación engaña */
+    if(pl.length > 8 && pFrom >= new Date(earliest.getTime() - 3*86400000)) prev = totals(pl);
+  }
+  const delta = (cur, old) => {
+    if(!prev || !old) return ['', 'flat'];
+    const c = (cur - old) / old;
+    return [(c >= 0 ? '▲ ' : '▼ ') + pct(Math.abs(c), 1) + ' vs. periodo anterior', c >= 0 ? 'up' : 'down'];
+  };
+  const [dr, cr] = delta(T.revenue, prev && prev.revenue);
+  const [dm, cm] = delta(T.margin, prev && prev.margin);
+  const [da, ca] = delta(T.aov, prev && prev.aov);
+  $('#kpis').innerHTML =
+    kpi('Ingresos', money(T.revenue), dr, cr) +
+    kpi('Margen bruto', money(T.margin), dm, cm) +
+    kpi('Margen sobre ventas', pct(T.mrate), (+profile.target ? 'objetivo ' + profile.target + ' %' : ''), T.mrate >= (+profile.target||0)/100 ? 'up' : 'down') +
+    kpi('Pedidos', T.orders.toLocaleString('es-ES'), T.customers.toLocaleString('es-ES') + ' clientes') +
+    kpi('Ticket medio', money(T.aov, 2), da, ca);
+
+  $('#ch-revenue').innerHTML = chartRevenue(months);
+  const alerts = buildAlerts();
+  $('#alerts').innerHTML = alerts.length
+    ? alerts.map(a => '<div class="alert ' + a.type + '"><div class="t">' + a.t + '</div><div class="b">' + a.b + '</div></div>').join('')
+    : '<p class="hint">No hay suficientes datos en este periodo para sacar conclusiones.</p>';
+  renderTape();
+
+  /* --- productos --- */
+  const prods = groupBy(L, l => l.product);
+  $('#ch-scatter').innerHTML = chartScatter(prods);
+  table($('#t-products'), [
+    { k:'key',     h:'Producto' },
+    { k:'units',   h:'Uds', n:true, f:v => Math.round(v).toLocaleString('es-ES') },
+    { k:'revenue', h:'Ingresos', n:true, bar:true, f:v => money(v) },
+    { k:'cogs',    h:'Coste', n:true, f:v => money(v) },
+    { k:'margin',  h:'Margen', n:true, f:v => money(v) },
+    { k:'mrate',   h:'% margen', n:true, f:v => '<span class="' + (v >= (+profile.target||0)/100 ? 'up' : 'down') + '">' + pct(v) + '</span>' },
+    { k:'aov',     h:'Ticket', n:true, f:v => money(v, 2) }
+  ], prods, 'revenue');
+  const cats = groupBy(L, l => l.category).sort((a,b) => b.revenue - a.revenue);
+  $('#ch-cats').innerHTML = chartCats(cats);
+
+  /* --- clientes --- */
+  const custs = customerStats(L), P = pareto(custs);
+  const repeat = custs.filter(c => c.orders > 1).length;
+  $('#kpis-cust').innerHTML =
+    kpi('Clientes', custs.length.toLocaleString('es-ES')) +
+    kpi('Repiten', pct(custs.length ? repeat/custs.length : 0, 0), repeat.toLocaleString('es-ES') + ' clientes') +
+    kpi('Pedidos por cliente', (custs.length ? T.orders/custs.length : 0).toFixed(2).replace('.', ',')) +
+    kpi('Gasto medio por cliente', money(custs.length ? T.revenue/custs.length : 0, 2)) +
+    kpi('Top 20 % de clientes', pct(P.top20, 0), 'de tus ingresos');
+  $('#ch-pareto').innerHTML = chartPareto(P);
+  table($('#t-customers'), [
+    { k:'id',      h:'Cliente' },
+    { k:'orders',  h:'Pedidos', n:true },
+    { k:'revenue', h:'Gastado', n:true, bar:true, f:v => money(v) },
+    { k:'aov',     h:'Ticket medio', n:true, f:v => money(v, 2) },
+    { k:'margin',  h:'Margen', n:true, f:v => money(v) }
+  ], custs, 'revenue');
+  const cold = coldCustomers();
+  $('#churn').innerHTML = cold.length
+    ? '<table><thead><tr><th>Cliente</th><th class="n">Gastado</th><th class="n">Sin comprar</th></tr></thead><tbody>' +
+      cold.map(c => '<tr><td>' + esc(c.id) + '</td><td class="n">' + money(c.revenue) + '</td><td class="n">' + c.days + ' días</td></tr>').join('') +
+      '</tbody></table>'
+    : '<p class="hint">Ningún cliente recurrente lleva demasiado tiempo sin comprar. Buena señal.</p>';
+
+  /* --- temporada --- */
+  $('#ch-dow').innerHTML = chartDow(L);
+  $('#ch-heat').innerHTML = chartHeat(L);
+  const chans = groupBy(L, l => l.channel).sort((a,b) => b.revenue - a.revenue);
+  table($('#t-channels'), [
+    { k:'key',      h:'Canal' },
+    { k:'orders',   h:'Pedidos', n:true },
+    { k:'revenue',  h:'Ingresos', n:true, bar:true, f:v => money(v) },
+    { k:'aov',      h:'Ticket medio', n:true, f:v => money(v, 2) },
+    { k:'discount', h:'Descuentos', n:true, f:v => money(v) },
+    { k:'mrate',    h:'% margen', n:true, f:v => pct(v) }
+  ], chans, 'revenue');
+
+  $('#foot-meta').textContent = DATA.orders.length.toLocaleString('es-ES') + ' líneas de pedido · ' +
+    (DATA.demo ? 'datos de ejemplo' : 'tu CSV') + (DATA.hasCost ? '' : ' · sin columna de coste: el margen no incluye coste de producto');
+  $('#btn-demo').hidden = DATA.demo;
+}
+
+/* ============================================================
+   CABLEADO
+   ============================================================ */
+$$('.tab').forEach(t => t.addEventListener('click', () => {
+  $$('.tab').forEach(x => x.setAttribute('aria-selected', x === t));
+  $$('.view').forEach(v => { v.classList.remove('on'); v.hidden = true; });
+  const v = $('#v-' + t.dataset.view);
+  v.classList.add('on'); v.hidden = false;
+}));
+$('#period').addEventListener('change', render);
+
+/* ajustes */
+const dlg = $('#dlg-setup');
+function openSetup(){
+  $('#f-name').value = profile.name; $('#f-sector').value = profile.sector;
+  $('#f-currency').value = profile.currency; $('#f-fixed').value = profile.fixed; $('#f-target').value = profile.target;
+  dlg.showModal();
+}
+$('#btn-setup').addEventListener('click', openSetup);
+dlg.addEventListener('close', () => {
+  if(dlg.returnValue !== 'save') return;
+  profile.name = $('#f-name').value.trim() || DEFAULTS.name;
+  profile.sector = $('#f-sector').value;
+  profile.currency = $('#f-currency').value;
+  profile.fixed = Math.max(0, +$('#f-fixed').value || 0);
+  profile.target = Math.min(95, Math.max(0, +$('#f-target').value || 0));
+  profile.seen = true;
+  save(); render();
+});
+
+/* CSV */
+const dcsv = $('#dlg-csv');
+$('#btn-csv').addEventListener('click', () => { $('#csv-msg').innerHTML = ''; dcsv.showModal(); });
+$('#csv-close').addEventListener('click', () => dcsv.close());
+$('#pick').addEventListener('click', () => $('#file').click());
+$('#file').addEventListener('change', e => { if(e.target.files[0]) readFile(e.target.files[0]); });
+const drop = $('#drop');
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if(f) readFile(f); });
+function readFile(file){
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const parsed = rowsToOrders(parseCSV(r.result));
+      DATA = { orders: parsed.orders, hasCost: parsed.hasCost, demo:false };
+      $('#csv-msg').innerHTML = '<div class="alert good"><div class="t">Listo: ' + parsed.orders.length.toLocaleString('es-ES') + ' líneas leídas</div><div class="b">' +
+        (parsed.hasCost ? 'Se ha detectado columna de coste, así que el margen es real.' : 'No hay columna de coste: el margen mostrado descuenta descuentos y envíos, pero no el coste del producto.') + '</div></div>';
+      render();
+      setTimeout(() => dcsv.close(), 1400);
+    } catch(err){
+      $('#csv-msg').innerHTML = '<div class="alert"><div class="t">No se ha podido leer el archivo</div><div class="b">' + esc(err.message) + ' Revisa que la primera fila contenga los nombres de las columnas.</div></div>';
+    }
+  };
+  r.onerror = () => { $('#csv-msg').innerHTML = '<div class="alert"><div class="t">No se ha podido abrir el archivo</div><div class="b">Prueba con otro archivo o vuelve a exportarlo como CSV.</div></div>'; };
+  r.readAsText(file, 'utf-8');
+}
+$('#csv-sample').addEventListener('click', () => {
+  const head = 'fecha,pedido,cliente,producto,categoria,cantidad,precio,coste,descuento,envio,canal\n';
+  const rows = DATA.orders.slice(0, 300).map(o => [
+    o.date.toISOString().slice(0,10), o.order, o.customer, '"' + o.product + '"', o.category,
+    o.qty, o.price.toFixed(2), o.cost.toFixed(2), o.discount.toFixed(2), o.shipping.toFixed(2), '"' + o.channel + '"'
+  ].join(',')).join('\n');
+  const url = URL.createObjectURL(new Blob([head + rows], {type:'text/csv;charset=utf-8'}));
+  const a = document.createElement('a');
+  a.href = url; a.download = 'plantilla-pedidos.csv'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+});
+$('#btn-demo').addEventListener('click', () => {
+  DATA = { orders: demoOrders(), hasCost:true, demo:true };
+  render();
+});
+
+/* preguntas */
+$('#q-chips').innerHTML = SUGGEST.map(s => '<button class="chip">' + s + '</button>').join('');
+$$('#q-chips .chip').forEach(c => c.addEventListener('click', () => { $('#q').value = c.textContent; renderAnswer(c.textContent); }));
+$('#q-go').addEventListener('click', () => { const v = $('#q').value.trim(); if(v) renderAnswer(v); });
+$('#q').addEventListener('keydown', e => { if(e.key === 'Enter'){ const v = $('#q').value.trim(); if(v) renderAnswer(v); } });
+
+/* arranque */
+DATA = { orders: demoOrders(), hasCost:true, demo:true };
+render();
+if(!profile.seen) setTimeout(openSetup, 500);
+</script>
+</body>
+</html>
