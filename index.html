@@ -345,12 +345,17 @@ body::after{content:"";position:fixed;inset:0;z-index:70;pointer-events:none;
   <h1 id="logo" class="glitch" data-text="JOAN DOMENECH">JOAN DOMENECH</h1>
   <div class="t-sub">GONGORA · DESARROLLADOR WEB — E-COMMERCE / IA</div>
   <button id="press-start" data-nav>PULSA START</button>
-  <nav id="menu" hidden aria-label="Menú principal">
-    <button class="m-item" data-act="tour" data-nav><span>NUEVA PARTIDA</span><small>tour guiado · 5 pasos</small></button>
+  <nav id="submenu" hidden aria-label="Expediente">
     <button class="m-item" data-act="ficha" data-nav><span>FICHA DE OPERADOR</span><small>perfil · stats · formación</small></button>
     <button class="m-item" data-act="misiones" data-nav><span>MISIONES</span><small>experiencia laboral</small></button>
     <button class="m-item" data-act="skills" data-nav><span>HABILIDADES</span><small>árbol de skills</small></button>
     <button class="m-item" data-act="transmision" data-nav><span>TRANSMISIÓN</span><small>carta de presentación</small></button>
+    <button class="m-item" data-act="root" data-nav><span>◂ VOLVER</span><small>menú principal</small></button>
+  </nav>
+  <nav id="menu" hidden aria-label="Menú principal">
+    <button class="m-item" data-act="tour" data-nav><span>NUEVA PARTIDA</span><small>tour guiado · 5 pasos</small></button>
+    <button class="m-item" data-act="sub:exp" data-nav><span>EXPEDIENTE ▸</span><small>quién soy y qué he hecho</small></button>
+    <button class="m-item" data-act="portfolio" data-nav><span>PORTFOLIO</span><small>3 proyectos con código</small></button>
     <button class="m-item" data-act="arcade" data-nav><span>MODO ARCADE</span><small>deploy run · 60 s</small></button>
     <button class="m-item" data-act="contacto" data-nav><span>CONTACTO</span><small>canal directo</small></button>
     <div class="menu-foot">
@@ -423,6 +428,31 @@ body::after{content:"";position:fixed;inset:0;z-index:70;pointer-events:none;
       <p id="md-desc"></p>
       <div class="rw-h">RECOMPENSAS OBTENIDAS //</div>
       <div id="md-rw"></div>
+    </aside>
+  </div>
+</section>
+
+<!-- ============ PORTFOLIO ============ -->
+<section class="screen" id="scr-portfolio" tabindex="-1" aria-label="Portfolio">
+  <div class="sec-h"><span class="idx">02.B</span><h2>Portfolio</h2><span class="rule"></span></div>
+  <div class="split">
+    <ul id="p-list">
+      <li><button class="mi" data-nav><span class="mi-top"><span><span class="mi-role">BreaLabs</span><span class="mi-org">Tienda online en producción</span></span><span class="mi-date">2025 — ACTIVA</span></span></button></li>
+      <li><button class="mi" data-nav><span class="mi-top"><span><span class="mi-role">Ficha de operador</span><span class="mi-org">Este CV interactivo</span></span><span class="mi-date">2026</span></span></button></li>
+      <li><button class="mi" data-nav><span class="mi-top"><span><span class="mi-role">Contador</span><span class="mi-org">Panel de análisis de negocio</span></span><span class="mi-date">2026</span></span></button></li>
+    </ul>
+    <aside class="panel" id="p-detail">
+      <span class="m-tag" id="pd-tag" hidden></span>
+      <div id="pd-role"></div>
+      <div id="pd-org"></div>
+      <div id="pd-date"></div>
+      <p id="pd-desc"></p>
+      <div class="rw-h">STACK //</div>
+      <div id="pd-stack"></div>
+      <div class="rw-h" style="margin-top:14px">LO QUE DEMUESTRA //</div>
+      <div id="pd-rw"></div>
+      <p style="margin-top:18px"><a class="btn" id="pd-link" href="https://brealabs.com" target="_blank" rel="noopener" data-nav>VISITAR ▸</a></p>
+      <p id="pd-note" class="mi-org" style="margin-top:10px"></p>
     </aside>
   </div>
 </section>
@@ -695,11 +725,11 @@ function transition(fn){
 
 /* ---------------- sistema de pantallas ---------------- */
 const HUDNAMES_ES = {
-  title:'MENÚ PRINCIPAL', ficha:'FICHA DE OPERADOR', misiones:'MISIONES', skills:'HABILIDADES',
+  title:'MENÚ PRINCIPAL', ficha:'FICHA DE OPERADOR', misiones:'MISIONES', portfolio:'PORTFOLIO', skills:'HABILIDADES',
   transmision:'TRANSMISIÓN', arcade:'MODO ARCADE', contacto:'CONTACTO'
 };
 const HUDNAMES_EN = {
-  title:'MAIN MENU', ficha:'OPERATOR FILE', misiones:'MISSIONS', skills:'SKILLS',
+  title:'MAIN MENU', ficha:'OPERATOR FILE', misiones:'MISSIONS', portfolio:'PORTFOLIO', skills:'SKILLS',
   transmision:'TRANSMISSION', arcade:'ARCADE MODE', contacto:'CONTACT'
 };
 let HUDNAMES = HUDNAMES_ES;
@@ -729,6 +759,10 @@ function enterHooks(id){
       requestAnimationFrame(() => requestAnimationFrame(() => { b.style.width = b.dataset.w + '%'; }));
     });
     setTimeout(() => $('#scr-ficha').focus({preventScroll:true}), 40);
+  }
+  if(id === 'portfolio'){
+    selectProject(pi);
+    setTimeout(() => { const b = $$('#p-list .mi')[pi]; if(b) b.focus({preventScroll:true}); }, 40);
   }
   if(id === 'misiones'){
     selectMission(S.mi);
@@ -776,7 +810,11 @@ function goTo(id, push=true){
 
 function goBack(){
   sfx.back();
-  if(S.current === 'title'){ if(menuOpen) closeMenu(); return; }
+  if(S.current === 'title'){
+    if(menuOpen && !$('#submenu').hidden){ showSub('root'); return; }
+    if(menuOpen) closeMenu();
+    return;
+  }
   const prev = S.stack.pop() || 'title';
   if(S.tour && !TOURSEQ.includes(prev)) S.tour = false;
   transition(() => setScreen(prev));
@@ -830,6 +868,12 @@ function finishBoot(){
 }
 
 /* ---------------- menú del título ---------------- */
+function showSub(which){
+  const root = which === 'root';
+  $('#menu').hidden = !root;
+  $('#submenu').hidden = root;
+  setTimeout(() => { const b = $$((root ? '#menu' : '#submenu') + ' .m-item')[0]; if(b) b.focus({preventScroll:true}); }, 30);
+}
 function openMenu(){
   if(menuOpen) return;
   menuOpen = true;
@@ -839,6 +883,8 @@ function openMenu(){
   setTimeout(() => { const f = $('#menu .m-item'); if(f) f.focus({preventScroll:true}); }, 20);
 }
 function closeMenu(){
+  $('#submenu').hidden = true;
+  $('#menu').hidden = false;
   menuOpen = false;
   sfx.back();
   $('#menu').hidden = true;
@@ -906,6 +952,68 @@ $$('#m-list .mi').forEach((b, i) => {
     selectMission(i); sfx.sel();
     if(matchMedia('(max-width:760px)').matches)
       $('#m-detail').scrollIntoView({behavior: S.reduced ? 'auto' : 'smooth', block: 'nearest'});
+  });
+});
+
+/* ---------------- portfolio ---------------- */
+const PROJECTS = [
+  { name:'BreaLabs', org:'Tienda online en producción', date:'2025 — ACTIVA', tag:'PROYECTO PROPIO',
+    desc:'Tienda de suplementos que desarrollo y gestiono de punta a punta. El theme lleva secciones a medida escritas en Liquid, con su HTML, CSS y JavaScript propios; detrás hay flujos de email automatizados, analítica y cumplimiento normativo. Es el proyecto donde todo lo demás se pone a prueba con clientes reales.',
+    stack:['Shopify','Liquid','JavaScript','CSS','Omnisend'],
+    rw:['+TRABAJO EN PRODUCCIÓN','+CLIENTES REALES','+DE PUNTA A PUNTA'],
+    link:'https://brealabs.com', note:'Se abre la tienda real en una pestaña nueva.',
+    en:{ org:'Live online store', date:'2025 — ACTIVE', tag:'OWN VENTURE',
+         desc:'A supplements store I build and run end to end. The theme has custom sections written in Liquid, with their own HTML, CSS and JavaScript; behind it sit automated email flows, analytics and regulatory compliance. This is where everything else gets tested with real customers.',
+         rw:['+SHIPPED TO PRODUCTION','+REAL CUSTOMERS','+END-TO-END OWNERSHIP'],
+         note:'Opens the live store in a new tab.' } },
+  { name:'Ficha de operador', org:'Este CV interactivo', date:'2026', tag:'RESTRICCIÓN EXTREMA',
+    desc:'Lo que estás usando ahora mismo. Un solo archivo HTML, sin frameworks ni dependencias: motor de pantallas, minijuego en canvas, sistema de idiomas, navegación completa por teclado y una versión sobria que sale al imprimir. El reto era hacer todo esto sin importar una sola librería.',
+    stack:['HTML','CSS','JavaScript','Canvas','Web Audio'],
+    rw:['+CERO DEPENDENCIAS','+CANVAS Y ANIMACIÓN','+ACCESIBILIDAD','+BILINGÜE'],
+    link:'https://github.com/joan-domenech/joan-domenech.github.io', note:'El enlace lleva al código fuente en GitHub.',
+    en:{ org:'This interactive CV', date:'2026', tag:'EXTREME CONSTRAINT',
+         desc:'What you are using right now. A single HTML file, no frameworks or dependencies: a screen engine, a canvas minigame, a language system, full keyboard navigation and a plain version that comes out when you print. The challenge was doing all of it without importing a single library.',
+         rw:['+ZERO DEPENDENCIES','+CANVAS & ANIMATION','+ACCESSIBILITY','+BILINGUAL'],
+         note:'The link goes to the source code on GitHub.' } },
+  { name:'Contador', org:'Panel de análisis de negocio', date:'2026', tag:'SIN LÍMITES',
+    desc:'Herramienta para dueños de tiendas online: arrastras tu CSV de pedidos y calcula qué producto deja margen de verdad, qué porcentaje de clientes sostiene la facturación, quién lleva tiempo sin comprar y cómo se mueve la temporada. Incluye un intérprete que responde preguntas escritas en lenguaje normal. Todo el cálculo ocurre en el navegador.',
+    stack:['JavaScript','SVG','Análisis de datos','Sin dependencias'],
+    rw:['+LÓGICA DE NEGOCIO','+GRÁFICAS A MANO','+LECTURA DE CSV','+PRODUCTO PENSADO'],
+    link:'panel/', note:'Abre con una tienda de ejemplo. Los datos son sintéticos.',
+    en:{ org:'Business analytics dashboard', date:'2026', tag:'NO LIMITS',
+         desc:'A tool for online store owners: drop in your orders CSV and it works out which product actually leaves margin, what share of customers holds up the revenue, who has stopped buying and how the season moves. It includes an interpreter that answers questions written in plain language. All calculation happens in the browser.',
+         stack:['JavaScript','SVG','Data analysis','No dependencies'],
+         rw:['+BUSINESS LOGIC','+HAND-BUILT CHARTS','+CSV PARSING','+PRODUCT THINKING'],
+         note:'Opens with a sample store. The data is synthetic.' } }
+];
+let pi = 0;
+function selectProject(i){
+  pi = i;
+  $$('#p-list .mi').forEach((b, j) => b.classList.toggle('sel', j === i));
+  const p0 = PROJECTS[i];
+  const p = (LANG === 'en' && p0.en) ? Object.assign({}, p0, p0.en) : p0;
+  $('#pd-tag').hidden = !p.tag;
+  $('#pd-tag').textContent = p.tag;
+  $('#pd-role').textContent = p.name;
+  $('#pd-org').textContent  = p.org;
+  $('#pd-date').textContent = p.date;
+  $('#pd-desc').textContent = p.desc;
+  const st = $('#pd-stack'); st.innerHTML = '';
+  p.stack.forEach(t => { const s = document.createElement('span'); s.className = 'rw'; s.textContent = t; st.appendChild(s); });
+  const rw = $('#pd-rw'); rw.innerHTML = '';
+  p.rw.forEach(t => { const s = document.createElement('span'); s.className = 'rw'; s.textContent = t; rw.appendChild(s); });
+  const a = $('#pd-link');
+  a.href = p.link;
+  a.textContent = (LANG === 'en' ? 'VISIT ▸' : 'VISITAR ▸');
+  a.target = p.link.indexOf('http') === 0 ? '_blank' : '_self';
+  $('#pd-note').textContent = p.note;
+}
+$$('#p-list .mi').forEach((b, i) => {
+  b.addEventListener('focus', () => selectProject(i));
+  b.addEventListener('click', () => {
+    selectProject(i); sfx.sel();
+    if(matchMedia('(max-width:760px)').matches)
+      $('#p-detail').scrollIntoView({behavior: S.reduced ? 'auto' : 'smooth', block:'nearest'});
   });
 });
 
@@ -1306,6 +1414,20 @@ const DICT = {
 "GONGORA · DESARROLLADOR WEB — E-COMMERCE / IA":"GONGORA · WEB DEVELOPER — E-COMMERCE / AI",
 "PULSA START":"PRESS START",
 "NUEVA PARTIDA":"NEW GAME",
+"EXPEDIENTE ▸":"PERSONNEL FILE ▸",
+"quién soy y qué he hecho":"who I am and what I have done",
+"PORTFOLIO":"PORTFOLIO",
+"3 proyectos con código":"3 projects with code",
+"menú principal":"main menu",
+"Portfolio":"Portfolio",
+"STACK //":"STACK //",
+"LO QUE DEMUESTRA //":"WHAT IT SHOWS //",
+"BreaLabs":"BreaLabs",
+"Tienda online en producción":"Live online store",
+"Ficha de operador":"Operator file",
+"Este CV interactivo":"This interactive CV",
+"Contador":"Contador",
+"Panel de análisis de negocio":"Business analytics dashboard",
 "tour guiado · 5 pasos":"guided tour · 5 steps",
 "FICHA DE OPERADOR":"OPERATOR FILE",
 "perfil · stats · formación":"profile · stats · education",
@@ -1453,7 +1575,7 @@ const TEXTNODES = [];
     acceptNode(n){
       if(!n.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
       const p = n.parentElement;
-      if(!p || p.closest('#tx-out, #m-detail, #sk-detail, .ar-hud, #ov-stats, #tourbar, #announcer'))
+      if(!p || p.closest('#tx-out, #m-detail, #p-detail, #sk-detail, .ar-hud, #ov-stats, #tourbar, #announcer'))
         return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     }
@@ -1482,6 +1604,7 @@ function applyLang(lang){
   /* contenido generado por JS */
   $('#hud-name').textContent = '> ' + HUDNAMES[S.current] + '_';
   selectMission(S.mi);
+  selectProject(pi);
   const sel = $('#tree .node.sel');
   selectSkill(sel ? sel.dataset.skill : 'core');
   updateTourbar();
@@ -1492,10 +1615,12 @@ function toggleLang(){ sfx.sel(); applyLang(LANG === 'es' ? 'en' : 'es'); }
 
 /* ---------------- wiring general ---------------- */
 $('#press-start').addEventListener('click', openMenu);
-$$('#menu .m-item').forEach(b => b.addEventListener('click', () => {
+$$('#menu .m-item, #submenu .m-item').forEach(b => b.addEventListener('click', () => {
   const act = b.dataset.act;
   sfx.sel();
   if(act === 'tour') startTour();
+  else if(act === 'root') showSub('root');
+  else if(act.startsWith('sub:')) showSub(act.slice(4));
   else goTo(act);
 }));
 $('#btn-pdf').addEventListener('click', () => window.print());
@@ -1574,6 +1699,7 @@ document.addEventListener('visibilitychange', () => {
 renderSnd();
 applyLang((navigator.language || 'es').toLowerCase().startsWith('es') ? 'es' : 'en');
 selectMission(0);
+selectProject(0);
 selectSkill('core');
 AR.init();
 runBoot();
