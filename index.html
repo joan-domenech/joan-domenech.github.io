@@ -32,7 +32,23 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--txt);font-family:'DM Mono',ui-monospace,'Cascadia Code','SF Mono',Menlo,monospace;line-height:1.5;overflow-x:hidden}
+body{background:var(--bg);color:var(--txt);font-family:'DM Mono',ui-monospace,'Cascadia Code','SF Mono',Menlo,monospace;line-height:1.5;overflow-x:hidden;
+  background-image:
+    radial-gradient(ellipse 70% 55% at 50% 22%, rgba(45,226,255,.07), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 85% 90%, rgba(91,58,131,.10), transparent 70%),
+    linear-gradient(160deg,#0a1024 0%,#05070d 45%,#12071a 100%);
+  background-attachment:fixed}
+/* halo que respira, igual que en el juego */
+#aura{position:fixed;inset:-20%;z-index:0;pointer-events:none;
+  background:radial-gradient(circle at 50% 38%, rgba(45,226,255,.09), transparent 55%);
+  opacity:.75}
+@media(prefers-reduced-motion:no-preference){#aura{animation:breathe 9s ease-in-out infinite}}
+@keyframes breathe{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:.95;transform:scale(1.06)}}
+/* motas flotando en profundidad */
+#motes{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;opacity:.7}
+#motes i{position:absolute;display:block;border-radius:50%;background:var(--cyan);opacity:.5}
+@media(prefers-reduced-motion:no-preference){#motes i{animation:rise linear infinite}}
+@keyframes rise{from{transform:translateY(110vh)}to{transform:translateY(-10vh)}}
 [hidden]{display:none!important}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-action:manipulation}
 a{color:var(--cyan)}
@@ -40,12 +56,21 @@ a{color:var(--cyan)}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:3px}
 /* fondo: rejilla + scanlines */
 body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
-  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
-  background-size:44px 44px;
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(91,58,131,.055) 1px,transparent 1px);
+  background-size:56px 56px,56px 56px,28px 28px;
   -webkit-mask-image:radial-gradient(ellipse 80% 70% at 50% 30%,#000 40%,transparent 100%);
   mask-image:radial-gradient(ellipse 80% 70% at 50% 30%,#000 40%,transparent 100%)}
+@media(prefers-reduced-motion:no-preference){body::before{animation:drift 26s linear infinite}}
+@keyframes drift{from{background-position:0 0,0 0,0 0}to{background-position:0 56px,56px 0,-28px 0}}
 body::after{content:"";position:fixed;inset:0;z-index:70;pointer-events:none;
   background:repeating-linear-gradient(0deg,rgba(0,0,0,0) 0 2px,rgba(0,0,0,.16) 2px 3px);mix-blend-mode:multiply;opacity:.55}
+#sweep{position:fixed;left:0;right:0;height:180px;z-index:69;pointer-events:none;
+  background:linear-gradient(180deg,transparent,rgba(45,226,255,.055),transparent)}
+@media(prefers-reduced-motion:no-preference){#sweep{animation:sweep 7s linear infinite}}
+@media(prefers-reduced-motion:reduce){#sweep{display:none}}
+@keyframes sweep{from{top:-180px}to{top:100%}}
 @media(prefers-reduced-motion:no-preference){body::after{animation:scan 9s linear infinite}}
 @keyframes scan{from{background-position:0 0}to{background-position:0 100px}}
 @keyframes blink{50%{opacity:.25}}
@@ -111,7 +136,7 @@ body::after{content:"";position:fixed;inset:0;z-index:70;pointer-events:none;
 #scr-title.active{display:flex;flex-direction:column;align-items:center;justify-content:center}
 .t-eyebrow{font-size:10px;letter-spacing:.34em;color:var(--magenta);margin-bottom:14px}
 #logo{font-family:'Orbitron',monospace;font-weight:800;font-size:clamp(34px,8.5vw,74px);line-height:1;color:#eaffff;
-  letter-spacing:.04em;text-shadow:0 0 24px rgba(45,226,255,.35);position:relative}
+  letter-spacing:.04em;text-shadow:0 0 30px rgba(45,226,255,.22);position:relative}
 .glitch::before,.glitch::after{content:attr(data-text);position:absolute;inset:0;pointer-events:none;opacity:0}
 .glitch::before{color:var(--magenta);transform:translate(-3px,1px)}
 .glitch::after{color:var(--cyan);transform:translate(3px,-1px)}
@@ -126,11 +151,19 @@ body::after{content:"";position:fixed;inset:0;z-index:70;pointer-events:none;
 #press-start:hover{border-color:var(--cyan)}
 @media(prefers-reduced-motion:no-preference){#press-start{animation:blink 1.3s steps(2) infinite}}
 #menu{margin-top:36px;width:min(92vw,470px);display:flex;flex-direction:column;gap:9px}
-.m-item{display:flex;justify-content:space-between;align-items:baseline;gap:12px;text-align:left;
-  border:1px solid var(--line);background:var(--panel);padding:13px 16px;transition:transform .15s,border-color .15s,background .15s}
-.m-item span{font-family:'Orbitron',monospace;font-size:12px;letter-spacing:.12em;color:#cfe8f5}
-.m-item small{font-size:11.5px;letter-spacing:.06em;color:#a8c2d6;text-align:right}
-.m-item:hover,.m-item:focus-visible{border-color:var(--cyan);background:var(--panel2);transform:translateX(5px);outline-offset:0}
+.m-item{display:flex;justify-content:space-between;align-items:baseline;gap:12px;text-align:left;position:relative;
+  border:1px solid rgba(45,226,255,.16);background:linear-gradient(180deg,rgba(12,18,32,.72),rgba(6,9,16,.72));
+  padding:13px 16px;backdrop-filter:blur(2px);
+  transition:transform .18s cubic-bezier(.2,.7,.3,1),border-color .18s,background .18s,box-shadow .18s}
+.m-item span{font-family:'Orbitron',monospace;font-size:12px;letter-spacing:.12em;color:#b8d4e4;transition:color .18s}
+.m-item small{font-size:11px;letter-spacing:.06em;color:#7f9aab;text-align:right;transition:color .18s}
+.m-item::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--cyan);
+  opacity:0;transition:opacity .18s}
+.m-item:hover,.m-item:focus-visible{border-color:rgba(45,226,255,.5);background:linear-gradient(180deg,rgba(45,226,255,.07),rgba(6,9,16,.8));
+  transform:translateX(4px);outline-offset:0;box-shadow:0 4px 22px -12px rgba(45,226,255,.5)}
+.m-item:hover span,.m-item:focus-visible span{color:#eafcff}
+.m-item:hover small,.m-item:focus-visible small{color:#a8c2d6}
+.m-item:hover::after,.m-item:focus-visible::after{opacity:1}
 .menu-foot{display:flex;justify-content:center;gap:12px;margin-top:14px}
 .t-foot{margin-top:46px;font-size:9px;letter-spacing:.22em;color:var(--dim);max-width:600px}
 
@@ -318,6 +351,9 @@ body::after{content:"";position:fixed;inset:0;z-index:70;pointer-events:none;
 </head>
 <body>
 <div id="announcer" class="sr-only" aria-live="polite"></div>
+<div id="aura" aria-hidden="true"></div>
+<div id="motes" aria-hidden="true"></div>
+<div id="sweep" aria-hidden="true"></div>
 <div id="fx" aria-hidden="true"></div>
 <div id="boot" aria-hidden="true"><div class="bootbox">
   <div class="line">&gt; INICIALIZANDO INTERFAZ DE OPERADOR...</div>
@@ -364,7 +400,7 @@ body::after{content:"";position:fixed;inset:0;z-index:70;pointer-events:none;
       <button class="btn ghost small" id="btn-pdf" data-nav>EXPORTAR PDF</button>
     </div>
   </nav>
-  <div class="t-foot">SECTOR BARCELONA · JDG-2002 · v2.0 — 2026<br>↑↓ NAVEGAR · ENTER SELECCIONAR · ESC VOLVER · M SONIDO</div>
+  <div class="t-foot">BARCELONA · 2026</div>
 </section>
 
 <!-- ============ FICHA DE OPERADOR ============ -->
@@ -650,7 +686,7 @@ const S = {
   stack: [],
   tour: false,        // tour "Nueva partida" activo
   tourArrive: false,  // llegada a Contacto vía tour
-  muted: true,        // sonido silenciado por defecto
+  muted: false,       // sonido activo; el navegador no lo emite hasta la primera interacción
   mi: 0,              // misión seleccionada
   reduced: matchMedia('(prefers-reduced-motion: reduce)').matches
 };
@@ -1277,6 +1313,7 @@ const AR = {
     window.addEventListener('blur', () => { this.inp = {}; this.touch = null; });
     this.cv.addEventListener('pointerdown', e => this.onPoint(e, true));
     this.cv.addEventListener('pointermove', e => this.onPoint(e, false));
+    this.cv.addEventListener('pointerleave', () => { this.touch = null; this.cv.style.cursor = 'default'; });
     window.addEventListener('pointerup', () => { this.touch = null; });
     $('#ar-play').addEventListener('click', () => this.start());
     $('#ar-resume').addEventListener('click', () => this.resume());
@@ -1289,10 +1326,28 @@ const AR = {
   onPoint(e, down){
     const r = this.cv.getBoundingClientRect();
     const x = (e.clientX - r.left) * (this.W / r.width), y = (e.clientY - r.top) * (this.H / r.height);
-    if(this.state === 'play'){ this.touch = {x, y}; return; }
+    if(this.state === 'play'){
+      /* con ratón solo se sigue el puntero si se mantiene pulsado; el táctil arrastra siempre */
+      if(down || e.pointerType !== 'mouse' || e.buttons) this.touch = {x, y};
+      return;
+    }
+    /* fuera del combate el puntero resalta antes de hacer clic */
+    if(this.state === 'map' || this.state === 'upgrade'){
+      const rs = this.state === 'map' ? this.nodeRects() : this.upRects();
+      let over = -1;
+      for(let i = 0; i < rs.length; i++){
+        const q = rs[i];
+        if(x >= q.x && x <= q.x + q.w && y >= q.y - 8 && y <= q.y + q.h) over = i;
+      }
+      this.cv.style.cursor = over >= 0 ? 'pointer' : 'default';
+      if(over >= 0 && over !== this.sel){ this.sel = over; sfx.move(); }
+      if(down && over >= 0){
+        if(this.state === 'map') this.enterNode(); else this.takeUp(over);
+      }
+      return;
+    }
+    this.cv.style.cursor = 'default';
     if(!down) return;
-    if(this.state === 'map'){ this.pickAt(x, y); return; }
-    if(this.state === 'upgrade'){ this.pickUpAt(x, y); return; }
     if(this.state === 'clear'){ this.afterClear(); }
   },
   size(){
@@ -2229,8 +2284,7 @@ const DICT = {
 "CONTACTO":"CONTACT",
 "canal directo":"direct channel",
 "EXPORTAR PDF":"EXPORT PDF",
-"SECTOR BARCELONA · JDG-2002 · v2.0 — 2026":"BARCELONA SECTOR · JDG-2002 · v2.0 — 2026",
-"↑↓ NAVEGAR · ENTER SELECCIONAR · ESC VOLVER · M SONIDO":"↑↓ NAVIGATE · ENTER SELECT · ESC BACK · M SOUND",
+"BARCELONA · 2026":"BARCELONA · 2026",
 "Ficha de operador":"Operator file",
 "Registro personal":"Personal record",
 "CLASE: DESARROLLADOR WEB · ESPEC. E-COMMERCE / IA":"CLASS: WEB DEVELOPER · SPEC. E-COMMERCE / AI",
@@ -2489,6 +2543,23 @@ document.addEventListener('visibilitychange', () => {
 });
 
 /* ---------------- init ---------------- */
+/* motas de fondo de la página */
+(function makeMotes(){
+  const box = $('#motes');
+  if(!box || S.reduced) return;
+  let html = '';
+  for(let i = 0; i < 26; i++){
+    const z = 0.3 + Math.random()*0.9;
+    const s = (1.2 + Math.random()*2.6) * z;
+    html += '<i style="left:' + (Math.random()*100).toFixed(1) + '%;width:' + s.toFixed(1) + 'px;height:' + s.toFixed(1) +
+            'px;opacity:' + (0.12 + z*0.3).toFixed(2) +
+            ';background:' + (z > 0.75 ? '#2de2ff' : '#5B3A83') +
+            ';animation-duration:' + (16 + Math.random()*26).toFixed(1) + 's' +
+            ';animation-delay:-' + (Math.random()*30).toFixed(1) + 's"></i>';
+  }
+  box.innerHTML = html;
+})();
+
 renderSnd();
 applyLang((navigator.language || 'es').toLowerCase().startsWith('es') ? 'es' : 'en');
 selectMission(0);
